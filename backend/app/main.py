@@ -62,7 +62,11 @@ app.add_middleware(
 
 app.include_router(api_router, prefix="/api")
 
-@app.get("/health")
+@app.api_route("/", methods=["GET", "HEAD"])
+async def root_ping():
+    return {"status": "healthy", "service": "LUNA AI Core", "version": "1.0.0"}
+
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health_check():
     ai_status = await ai_brain.get_health_status()
     return {

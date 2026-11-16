@@ -166,13 +166,22 @@ export class LunaSpeechEngine {
       this.recordingStartTime = Date.now();
       this.isRecordingChunk = true;
 
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
-        : 'audio/mp4';
+      let mimeType = '';
+      if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported) {
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm';
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/aac')) {
+          mimeType = 'audio/aac';
+        }
+      }
 
-      this.mediaRecorder = new MediaRecorder(this.mediaStream, { mimeType });
+      this.mediaRecorder = mimeType
+        ? new MediaRecorder(this.mediaStream, { mimeType })
+        : new MediaRecorder(this.mediaStream);
 
       this.mediaRecorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) {
@@ -334,7 +343,17 @@ export class LunaSpeechEngine {
 
     try {
       const formData = new FormData();
-      formData.append('file', audioBlob, 'speech.webm');
+      let ext = 'webm';
+      if (audioBlob.type) {
+        if (audioBlob.type.includes('mp4') || audioBlob.type.includes('m4a') || audioBlob.type.includes('aac')) {
+          ext = 'mp4';
+        } else if (audioBlob.type.includes('wav')) {
+          ext = 'wav';
+        } else if (audioBlob.type.includes('ogg')) {
+          ext = 'ogg';
+        }
+      }
+      formData.append('file', audioBlob, `speech.${ext}`);
       formData.append('language', 'auto');
 
       const res = await fetch(`${getApiBaseUrl()}/api/voice/transcribe`, {

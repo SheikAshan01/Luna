@@ -110,12 +110,10 @@ export const HomeView: React.FC = () => {
   };
 
   const quickActions = [
-    { title: 'Inspect Screen', prompt: 'Luna, screen-la enna irukku nu paaru', icon: Eye, color: '#00F5FF' },
+    { title: 'Play Tamil Song', prompt: 'Luna, trending tamil song podu', icon: Music, color: '#A855F7' },
     { title: 'Morning Briefing', prompt: 'Good morning Luna, daily briefing update sollu', icon: Sun, color: '#F59E0B' },
-    { title: 'Play / Pause', prompt: 'Luna, toggle media playback', icon: Music, color: '#A855F7' },
-    { title: 'Sort Downloads', prompt: 'Luna, Downloads folder organize pannu', icon: FolderSync, color: '#10B981' },
-    { title: 'VS Code', prompt: 'Luna, VS Code open pannu', icon: Code, color: '#3B82F6' },
-    { title: 'Lock PC', prompt: 'Luna, lock PC', icon: Lock, color: '#EF4444' },
+    { title: 'How are you?', prompt: 'Hey Luna, epdi irukka?', icon: Sparkles, color: '#00F5FF' },
+    { title: 'Sing for Me', prompt: 'Luna, oru paatu paadu', icon: Music, color: '#10B981' },
   ];
 
   const recentMessages = messages.slice(-3);
@@ -194,7 +192,7 @@ export const HomeView: React.FC = () => {
         <motion.div
           animate={{ y: [0, -6, 0] }}
           transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-          className="relative flex items-center justify-center"
+          className="relative flex items-center justify-center scale-75 sm:scale-90 md:scale-100 transition-transform"
         >
           <LunaOrb
             state={assistantState}

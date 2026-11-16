@@ -25,7 +25,15 @@ class STTEngine:
 
                 # Detect mime type from filename
                 ext = filename.split(".")[-1].lower() if "." in filename else "webm"
-                mime_map = {"webm": "audio/webm", "wav": "audio/wav", "mp3": "audio/mpeg", "ogg": "audio/ogg", "m4a": "audio/mp4"}
+                mime_map = {
+                    "webm": "audio/webm",
+                    "wav": "audio/wav",
+                    "mp3": "audio/mpeg",
+                    "ogg": "audio/ogg",
+                    "m4a": "audio/mp4",
+                    "mp4": "audio/mp4",
+                    "aac": "audio/aac"
+                }
                 mime_type = mime_map.get(ext, "audio/webm")
 
                 files = {"file": (f"speech.{ext}", audio_bytes, mime_type)}
