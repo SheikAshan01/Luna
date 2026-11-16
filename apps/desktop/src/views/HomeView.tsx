@@ -1,26 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Code,
-  Battery,
-  Lock,
-  Mic,
-  MicOff,
-  Globe,
-  Volume2,
-  Sparkles,
-  Cpu,
-  Zap,
-  Terminal,
-  Send,
-  Eye,
-  Sun,
-  Music,
-  FolderSync,
-  Trash2,
-  Activity,
-  Layers,
-} from 'lucide-react';
+import { Mic, Globe, Sparkles, Volume2 } from 'lucide-react';
 import { LunaOrb } from '../components/LunaOrb';
 import { useLunaStore } from '../store/useLunaStore';
 import { speechEngine } from '../services/speech';
@@ -29,29 +9,22 @@ export const HomeView: React.FC = () => {
   const {
     assistantState,
     setAssistantState,
-    systemHealth,
     sendMessage,
     messages,
     language,
     setLanguage,
-    clearChat,
   } = useLunaStore();
 
-  // Default to Push-to-Talk on mobile for instant UI loading and zero audio lag
-  const isMobile = typeof window !== 'undefined' && (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768);
-  const [autoDuplex, setAutoDuplex] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState('');
   const [liveVolume, setLiveVolume] = useState(0);
-  const [manualInput, setManualInput] = useState('');
-  const [isManualRecording, setIsManualRecording] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [isRecording, setIsRecording] = useState(false);
 
   useEffect(() => {
-    // 1. When voice is transcribed, submit to AI Brain
+    // 1. When voice transcription is complete, auto-submit to AI Brain
     speechEngine.setAutoSubmitCallback((query: string) => {
       setLiveTranscript(`"${query}"`);
       sendMessage(query);
-      setIsManualRecording(false);
+      setIsRecording(false);
     });
 
     // 2. Transcription and state progress
@@ -64,299 +37,154 @@ export const HomeView: React.FC = () => {
       }
     });
 
-    // 3. Real-time microphone audio volume for Orb kinetic waves
+    // 3. Audio volume visualizer
     speechEngine.setVolumeCallback((vol: number) => {
       setLiveVolume(vol);
     });
 
-    // 4. Start auto-listening
-    if (autoDuplex) {
-      speechEngine.startContinuousAutoListen();
-    }
-
     return () => {
-      speechEngine.stopContinuousAutoListen();
+      speechEngine.stopSpeaking();
     };
-  }, [autoDuplex, sendMessage, setAssistantState]);
+  }, [sendMessage, setAssistantState]);
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, liveTranscript]);
-
-  const toggleAutoDuplex = () => {
-    const nextState = !autoDuplex;
-    setAutoDuplex(nextState);
-    if (nextState) {
-      speechEngine.startContinuousAutoListen();
-    } else {
-      speechEngine.stopContinuousAutoListen();
-      setAssistantState('idle');
-      setLiveTranscript('');
-      setLiveVolume(0);
-      setIsManualRecording(false);
-    }
-  };
-
-  const handleOrbClick = async () => {
+  const handleToggleVoice = async () => {
     const recordingNow = await speechEngine.toggleManualRecord();
-    setIsManualRecording(recordingNow);
+    setIsRecording(recordingNow);
     if (recordingNow) {
       setAssistantState('listening');
+      setLiveTranscript('🎙️ Listening... பேசுங்கள்...');
+    } else {
+      setAssistantState('idle');
+      setLiveTranscript('');
     }
   };
 
-  const handleSendManual = () => {
-    if (!manualInput.trim()) return;
-    sendMessage(manualInput.trim());
-    setManualInput('');
-  };
-
-  const quickActions = [
-    { title: 'Play Tamil Song', prompt: 'Luna, trending tamil song podu', icon: Music, color: '#A855F7' },
-    { title: 'Morning Briefing', prompt: 'Good morning Luna, daily briefing update sollu', icon: Sun, color: '#F59E0B' },
-    { title: 'How are you?', prompt: 'Hey Luna, epdi irukka?', icon: Sparkles, color: '#00F5FF' },
-    { title: 'Sing for Me', prompt: 'Luna, oru paatu paadu', icon: Music, color: '#10B981' },
-  ];
-
-  const recentMessages = messages.slice(-3);
+  // Get the latest assistant response
+  const lastAssistantMsg = [...messages].reverse().find((m) => m.role === 'assistant');
 
   return (
-    <div className="flex-1 flex flex-col h-full cyber-backdrop cyber-grid relative overflow-hidden select-none">
-      {/* Top Floating Hologram Bar */}
-      <div className="p-4 flex items-center justify-between z-20">
-        {/* Left Telemetry Chips */}
-        <div className="flex items-center gap-2">
-          <div className="px-3.5 py-1.5 rounded-full cyber-glass flex items-center gap-2 border border-cyan-500/30 shadow-[0_0_15px_rgba(0,245,255,0.2)]">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span className="font-orbitron text-[10px] text-cyan-300 font-extrabold tracking-widest">
-              LUNA QUANTUM CORE
-            </span>
-          </div>
-
-          <div className="hidden sm:flex items-center gap-2.5 px-3.5 py-1.5 rounded-full cyber-glass text-[11px] font-mono text-slate-300">
-            <span className="flex items-center gap-1.5 text-cyan-400 font-bold">
-              <Cpu className="w-3.5 h-3.5" />
-              {systemHealth?.cpuUsagePercent ?? 0}%
-            </span>
-            <span className="text-white/20">|</span>
-            <span className="flex items-center gap-1.5 text-purple-400 font-bold">
-              <Zap className="w-3.5 h-3.5" />
-              {systemHealth?.memoryUsagePercent ?? 0}%
-            </span>
-            {systemHealth?.batteryPercent !== null && (
-              <>
-                <span className="text-white/20">|</span>
-                <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
-                  <Battery className="w-3.5 h-3.5" />
-                  {systemHealth.batteryPercent}%
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Right Controls: Language & Hands-Free Toggle */}
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => setLanguage(language === 'ta-IN' ? 'en-US' : 'ta-IN')}
-            className="px-3.5 py-1.5 rounded-full cyber-pill hover:border-cyan-400 text-xs font-orbitron font-bold text-white transition-all flex items-center gap-1.5"
-            title="Toggle Voice Dialect"
-          >
-            <Globe className="w-3.5 h-3.5 text-cyan-400" />
-            <span>{language === 'ta-IN' ? 'TAMIL' : 'ENGLISH'}</span>
-          </button>
-
-          <button
-            onClick={toggleAutoDuplex}
-            className={`px-4 py-1.5 rounded-full text-xs font-orbitron font-extrabold tracking-wider transition-all flex items-center gap-2 ${
-              autoDuplex
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/60 shadow-[0_0_20px_rgba(16,185,129,0.35)]'
-                : 'cyber-pill text-slate-400'
-            }`}
-          >
-            {autoDuplex ? (
-              <span className="flex items-center gap-2">
-                <Mic className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-                <span>HANDS-FREE ON</span>
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <MicOff className="w-3.5 h-3.5 text-slate-400" />
-                <span>HANDS-FREE OFF</span>
-              </span>
-            )}
-          </button>
-        </div>
+    <div className="flex-1 flex flex-col h-full w-full bg-[#02040a] relative overflow-hidden select-none justify-between items-center py-6 px-4">
+      {/* 1. Deep Space Ambient Nebula Glow */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-cyan-500/10 via-purple-600/15 to-transparent rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[300px] h-[300px] bg-cyan-400/10 rounded-full blur-[100px] pointer-events-none" />
       </div>
 
-      {/* Center Stage: The Majestic Quantum Core Orb */}
-      <div className="flex-1 flex flex-col items-center justify-center relative z-10 -mt-2">
-        <motion.div
-          animate={{ y: [0, -6, 0] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-          className="relative flex items-center justify-center scale-75 sm:scale-90 md:scale-100 transition-transform"
+      {/* 2. Top Ultra-Clean Minimal HUD Bar */}
+      <header className="w-full max-w-4xl flex items-center justify-between z-30 px-2">
+        {/* Futuristic Brand Watermark */}
+        <div className="flex items-center gap-2.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping shadow-[0_0_12px_#00f5ff]" />
+          <span className="font-orbitron font-black text-sm tracking-[0.25em] text-white">
+            LUNA <span className="text-cyan-400 font-semibold">JARVIS</span>
+          </span>
+        </div>
+
+        {/* Right Subtle Language Pill */}
+        <button
+          onClick={() => setLanguage(language === 'ta-IN' ? 'en-US' : 'ta-IN')}
+          className="px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-cyan-400/50 text-[11px] font-orbitron font-bold text-slate-300 hover:text-white transition-all flex items-center gap-2 backdrop-blur-xl shadow-lg"
         >
+          <Globe className="w-3.5 h-3.5 text-cyan-400" />
+          <span>{language === 'ta-IN' ? 'தமிழ்' : 'ENGLISH'}</span>
+        </button>
+      </header>
+
+      {/* 3. Pure Cinematic Center Stage: The Majestic Quantum Orb */}
+      <main className="flex-1 flex flex-col items-center justify-center w-full z-20 my-auto relative">
+        <div className="relative flex items-center justify-center scale-90 sm:scale-100 md:scale-110 transition-transform">
           <LunaOrb
             state={assistantState}
-            size={330}
+            size={340}
             liveVolume={liveVolume}
-            onClick={handleOrbClick}
+            onClick={handleToggleVoice}
           />
-        </motion.div>
+        </div>
 
-        {/* Live Audio Visualizer Pill or Status Banner */}
-        <div className="mt-3 min-h-[38px] flex items-center justify-center">
+        {/* 4. Elegant Floating Voice Subtitles & State Banner */}
+        <div className="mt-8 w-full max-w-lg px-4 flex flex-col items-center min-h-[90px]">
           <AnimatePresence mode="wait">
             {liveTranscript ? (
               <motion.div
                 key="transcript"
-                initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                className="px-5 py-2 rounded-full cyber-glass-glow text-xs font-orbitron font-bold text-cyan-300 flex items-center gap-3 max-w-lg shadow-[0_0_25px_rgba(0,245,255,0.4)]"
+                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                className="px-6 py-2.5 rounded-full bg-cyan-950/40 border border-cyan-400/40 backdrop-blur-2xl shadow-[0_0_30px_rgba(0,245,255,0.3)] flex items-center gap-3 text-cyan-200 text-xs font-orbitron font-bold tracking-wider text-center"
               >
                 <div className="flex items-center gap-1">
-                  <span className="w-1.5 h-4 bg-cyan-400 rounded-full animate-soundwave-1" />
-                  <span className="w-1.5 h-6 bg-cyan-400 rounded-full animate-soundwave-2" />
-                  <span className="w-1.5 h-3 bg-cyan-400 rounded-full animate-soundwave-3" />
-                  <span className="w-1.5 h-5 bg-cyan-400 rounded-full animate-soundwave-4" />
+                  <span className="w-1.5 h-3 bg-cyan-400 rounded-full animate-bounce" />
+                  <span className="w-1.5 h-5 bg-cyan-400 rounded-full animate-bounce delay-100" />
+                  <span className="w-1.5 h-3 bg-cyan-400 rounded-full animate-bounce delay-200" />
                 </div>
-                <span className="truncate">{liveTranscript}</span>
+                <span className="truncate max-w-xs">{liveTranscript}</span>
               </motion.div>
             ) : assistantState === 'speaking' ? (
               <motion.div
                 key="speaking"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="px-5 py-2 rounded-full cyber-glass border-pink-500/40 text-xs font-orbitron font-extrabold text-pink-400 flex items-center gap-2.5 shadow-[0_0_20px_rgba(236,72,153,0.35)]"
+                className="px-6 py-2.5 rounded-full bg-purple-950/40 border border-purple-400/50 backdrop-blur-2xl shadow-[0_0_30px_rgba(168,85,247,0.35)] flex items-center gap-3 text-purple-200 text-xs font-orbitron font-extrabold tracking-wider"
               >
-                <Volume2 className="w-4 h-4 text-pink-400 animate-bounce" />
-                <span>LUNA NEURAL VOICE SPEAKING...</span>
+                <Volume2 className="w-4 h-4 text-purple-400 animate-pulse" />
+                <span>LUNA SPEAKING...</span>
               </motion.div>
-            ) : assistantState === 'thinking' ? (
+            ) : assistantState === 'thinking' || assistantState === 'processing' ? (
               <motion.div
                 key="thinking"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="px-5 py-2 rounded-full cyber-glass border-purple-500/40 text-xs font-orbitron font-extrabold text-purple-300 flex items-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.35)]"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="px-6 py-2.5 rounded-full bg-purple-950/40 border border-purple-400/40 backdrop-blur-2xl shadow-[0_0_25px_rgba(168,85,247,0.3)] flex items-center gap-2 text-purple-300 text-xs font-orbitron font-bold"
               >
                 <Sparkles className="w-4 h-4 text-purple-400 animate-spin" />
-                <span>GROQ 120B REASONING...</span>
+                <span>AI REASONING...</span>
+              </motion.div>
+            ) : lastAssistantMsg ? (
+              <motion.div
+                key="lastmsg"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-2xl text-center max-w-md shadow-2xl"
+              >
+                <p className="text-xs sm:text-sm font-semibold font-rajdhani text-slate-100 leading-relaxed">
+                  {lastAssistantMsg.content}
+                </p>
               </motion.div>
             ) : (
-              <div
+              <motion.div
                 key="idle"
-                className="flex items-center gap-2 text-xs font-rajdhani text-slate-400"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center"
               >
-                <span className="text-cyan-400 font-bold">● Standby:</span>
-                <span>Speak naturally or click the Orb to command.</span>
-              </div>
+                <p className="text-xs font-orbitron text-slate-400 tracking-widest uppercase">
+                  TAP ORB TO TALK
+                </p>
+                <p className="text-[11px] font-rajdhani text-slate-400 mt-1">
+                  பேச திரையைத் தொடவும் அல்லது பட்டனை அழுத்தவும்
+                </p>
+              </motion.div>
             )}
           </AnimatePresence>
         </div>
-      </div>
+      </main>
 
-      {/* Floating Dialogue Box (Clean, High Contrast, Futuristic) */}
-      <div className="max-w-3xl w-full mx-auto px-4 mb-2 z-20">
-        <div className="max-h-36 overflow-y-auto space-y-2 pr-1">
-          {recentMessages.map((msg) => (
-            <motion.div
-              key={msg.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`p-3 rounded-2xl text-xs font-rajdhani leading-relaxed ${
-                msg.role === 'user'
-                  ? 'cyber-glass border-cyan-400/40 text-cyan-200 ml-16 text-right'
-                  : 'cyber-glass border-purple-500/30 text-slate-100 mr-16'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-orbitron font-black text-[10px] text-cyan-400 tracking-wider">
-                  {msg.role === 'user' ? 'YOU (VOICE / TEXT)' : 'LUNA (JARVIS)'}
-                </span>
-                <span className="text-[9px] font-mono text-slate-400">
-                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                </span>
-              </div>
-              <p className="text-sm font-semibold whitespace-pre-wrap">{msg.content}</p>
-            </motion.div>
-          ))}
-          <div ref={chatEndRef} />
-        </div>
-      </div>
-
-      {/* Bottom Command & Action Deck */}
-      <div className="p-4 z-20 max-w-3xl w-full mx-auto space-y-2">
-        {/* Quick Action Hologram Pills */}
-        <div className="flex items-center justify-center flex-wrap gap-2">
-          {quickActions.map((act, i) => {
-            const Icon = act.icon;
-            return (
-              <button
-                key={i}
-                onClick={() => sendMessage(act.prompt)}
-                className="px-3.5 py-1.5 rounded-xl cyber-pill hover:border-cyan-400 text-xs font-orbitron font-bold text-slate-200 hover:text-white flex items-center gap-2 group"
-                title={act.prompt}
-              >
-                <Icon
-                  className="w-3.5 h-3.5 transition-transform group-hover:scale-125"
-                  style={{ color: act.color }}
-                />
-                <span>{act.title}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Input Dock & Microphone Push-To-Talk */}
-        <div className="cyber-glass p-2 rounded-2xl flex items-center gap-2 border border-white/10 shadow-2xl">
-          {/* Push to Talk Button */}
-          <button
-            onClick={handleOrbClick}
-            className={`p-2.5 rounded-xl font-orbitron text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
-              isManualRecording
-                ? 'bg-rose-500 text-white animate-pulse shadow-[0_0_15px_rgba(244,63,94,0.5)]'
-                : 'bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500 hover:text-black border border-cyan-400/40'
-            }`}
-            title="Click to Speak / Stop"
-          >
-            <Mic className="w-4 h-4" />
-            <span className="hidden sm:inline font-bold">
-              {isManualRecording ? 'STOP' : 'TALK'}
-            </span>
-          </button>
-
-          {/* Text Input */}
-          <div className="flex-1 relative flex items-center">
-            <input
-              type="text"
-              value={manualInput}
-              onChange={(e) => setManualInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSendManual()}
-              placeholder="Speak naturally or type your command here..."
-              className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2 text-xs font-rajdhani text-white placeholder:text-slate-400 focus:outline-none focus:border-cyan-400 transition-colors"
-            />
-            {manualInput.trim() && (
-              <button
-                onClick={handleSendManual}
-                className="absolute right-1.5 p-1.5 rounded-lg bg-cyan-400 hover:bg-cyan-300 text-black font-bold transition-all shadow-[0_0_10px_rgba(0,245,255,0.4)]"
-              >
-                <Send className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Clear Chat Button */}
-          <button
-            onClick={clearChat}
-            className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors shrink-0"
-            title="Clear Chat History"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+      {/* 5. Bottom Ultra-Clean Push-To-Talk Button */}
+      <footer className="w-full max-w-md z-30 pb-2 flex flex-col items-center">
+        <button
+          onClick={handleToggleVoice}
+          className={`w-full py-4 px-6 rounded-2xl font-orbitron font-extrabold text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-3 backdrop-blur-2xl ${
+            isRecording
+              ? 'bg-rose-500 text-white shadow-[0_0_35px_rgba(244,63,94,0.6)] animate-pulse border border-rose-400'
+              : 'bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 hover:text-white border border-cyan-400/40 shadow-[0_0_25px_rgba(0,245,255,0.2)] hover:shadow-[0_0_35px_rgba(0,245,255,0.4)]'
+          }`}
+        >
+          <Mic className={`w-5 h-5 ${isRecording ? 'animate-bounce text-white' : 'text-cyan-400'}`} />
+          <span>{isRecording ? 'LISTENING... (TAP TO STOP)' : 'TALK / பேசுங்கள்'}</span>
+        </button>
+      </footer>
     </div>
   );
 };
