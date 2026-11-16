@@ -37,7 +37,9 @@ export const HomeView: React.FC = () => {
     clearChat,
   } = useLunaStore();
 
-  const [autoDuplex, setAutoDuplex] = useState(true);
+  // Default to Push-to-Talk on mobile for instant UI loading and zero audio lag
+  const isMobile = typeof window !== 'undefined' && (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768);
+  const [autoDuplex, setAutoDuplex] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState('');
   const [liveVolume, setLiveVolume] = useState(0);
   const [manualInput, setManualInput] = useState('');

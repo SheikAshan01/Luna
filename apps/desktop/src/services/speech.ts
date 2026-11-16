@@ -43,7 +43,7 @@ export class LunaSpeechEngine {
 
   constructor() {
     this.setupAutoUnlock();
-    this.initMicrophone();
+    // Microphone is initialized lazily upon user interaction to prevent blocking UI load on mobile
   }
 
   private setupAutoUnlock() {
