@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "LUNA AI",
+    "slug": "luna-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#070B14",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#070B14"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.luna.ai.assistant",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Allow LUNA AI to access your microphone for Tamil and English voice commands.",
+        "NSLocalNetworkUsageDescription": "Allow LUNA AI to connect to your PC Workstation on your local Wi-Fi network.",
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      }
+    },
+    "android": {
+      "package": "com.luna.ai.assistant",
+      "adaptiveIcon": {
+        "backgroundColor": "#070B14"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.WAKE_LOCK"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow LUNA AI to access your microphone for Tamil voice commands."
+        }
+      ]
+    ]
+  }
+}

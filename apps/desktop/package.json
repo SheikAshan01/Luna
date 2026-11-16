@@ -1,0 +1,38 @@
+{
+  "name": "luna-desktop",
+  "version": "1.0.0",
+  "description": "LUNA AI - Desktop Application",
+  "main": "dist-electron/main.cjs",
+  "scripts": {
+    "dev": "npm run build:electron && vite",
+    "build:electron": "tsc -p tsconfig.electron.json && node -e \"const fs=require('fs'); if(fs.existsSync('dist-electron/main.js')) fs.renameSync('dist-electron/main.js','dist-electron/main.cjs'); if(fs.existsSync('dist-electron/preload.js')) fs.renameSync('dist-electron/preload.js','dist-electron/preload.cjs'); if(fs.existsSync('electron/tray-icon.png')) fs.copyFileSync('electron/tray-icon.png','dist-electron/tray-icon.png');\"",
+    "build:vite": "tsc && vite build",
+    "build": "npm run build:electron && npm run build:vite",
+    "electron:dev": "npm run build:electron && concurrently \"vite\" \"wait-on tcp:5173 && electron .\"",
+    "start": "electron ."
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.11.17",
+    "lucide-react": "^0.460.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.5.4",
+    "zustand": "^5.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.0",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "wait-on": "^8.0.1"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "luna-ai-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LUNA AI - JARVIS-Inspired Personal Intelligent Assistant Monorepo",
+  "workspaces": [
+    "apps/*",
+    "shared"
+  ],
+  "scripts": {
+    "dev:backend": "cd backend && .\\venv\\Scripts\\python -m uvicorn app.main:app --reload --port 8000",
+    "test:backend": "powershell -Command \"$env:PYTHONPATH='backend'; .\\backend\\venv\\Scripts\\python -m pytest backend/tests -v\"",
+    "dev:desktop": "npm run --workspace=apps/desktop dev",
+    "build:desktop": "npm run --workspace=apps/desktop build",
+    "dev:mobile": "npm run --workspace=apps/mobile start"
+  },
+  "keywords": [
+    "luna",
+    "ai-assistant",
+    "jarvis",
+    "electron",
+    "react",
+    "expo",
+    "fastapi",
+    "tamil-ai"
+  ],
+  "author": "LUNA AI Team",
+  "license": "MIT"
+}
