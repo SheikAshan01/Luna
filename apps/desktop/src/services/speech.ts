@@ -328,10 +328,11 @@ export class LunaSpeechEngine {
       return;
     }
 
-    const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+    const recordedMime = this.mediaRecorder?.mimeType || 'audio/webm';
+    const audioBlob = new Blob(this.audioChunks, { type: recordedMime });
     this.audioChunks = [];
 
-    // Filter out tiny accidental spikes (< 250 bytes)
+    // Filter out tiny accidental noise spikes (< 250 bytes)
     if (audioBlob.size < 250) {
       if (this.speechCallback) this.speechCallback('', true);
       return;
@@ -344,17 +345,17 @@ export class LunaSpeechEngine {
     try {
       const formData = new FormData();
       let ext = 'webm';
-      if (audioBlob.type) {
-        if (audioBlob.type.includes('mp4') || audioBlob.type.includes('m4a') || audioBlob.type.includes('aac')) {
-          ext = 'mp4';
-        } else if (audioBlob.type.includes('wav')) {
-          ext = 'wav';
-        } else if (audioBlob.type.includes('ogg')) {
-          ext = 'ogg';
-        }
+      const typeStr = (audioBlob.type || recordedMime).toLowerCase();
+      if (typeStr.includes('mp4') || typeStr.includes('m4a') || typeStr.includes('aac')) {
+        ext = 'mp4';
+      } else if (typeStr.includes('wav')) {
+        ext = 'wav';
+      } else if (typeStr.includes('ogg')) {
+        ext = 'ogg';
       }
       formData.append('file', audioBlob, `speech.${ext}`);
-      formData.append('language', 'auto');
+      const cleanLang = this.selectedLanguage?.startsWith('ta') ? 'ta' : this.selectedLanguage?.startsWith('en') ? 'en' : 'auto';
+      formData.append('language', cleanLang);
 
       const res = await fetch(`${getApiBaseUrl()}/api/voice/transcribe`, {
         method: 'POST',
@@ -366,6 +367,13 @@ export class LunaSpeechEngine {
         const text = (data.text || '').trim();
 
         if (text && text.length > 0) {
+          const lower = text.toLowerCase().replace(/[^\w\s]/g, '').trim();
+          const hallucinations = ['thank you', 'thanks for watching', 'subtitles by', 'amara', 'mbc', 'subscribe', 'you'];
+          if (hallucinations.includes(lower)) {
+            if (this.speechCallback) this.speechCallback('', true);
+            return;
+          }
+
           if (this.speechCallback) {
             this.speechCallback(text, true);
           }

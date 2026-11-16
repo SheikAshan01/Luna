@@ -72,23 +72,20 @@ async function runTests() {
     await page.screenshot({ path: shotPath, fullPage: false });
     console.log(`Screenshot saved to: ${shotPath}`);
 
-    // Test text message interaction if on Desktop
-    let chatWorked = false;
-    if (!dev.isMobile) {
-      try {
-        const input = await page.$('input[placeholder*="Speak naturally"]');
-        if (input) {
-          await input.fill('வணக்கம் லூனா');
-          await page.keyboard.press('Enter');
-          console.log(`Sent test message: "வணக்கம் லூனா"`);
-          await page.waitForTimeout(4000);
-          const bodyText = await page.innerText('body');
-          chatWorked = bodyText.includes('வணக்கம்') || bodyText.includes('சொல்லுங்கள்') || bodyText.includes('LUNA');
-          console.log(`Chat response received: ${chatWorked ? 'YES' : 'NO'}`);
-        }
-      } catch (err) {
-        console.warn('Chat interaction check skipped:', err.message);
+    // Test Talk Button interaction
+    let talkButtonWorked = false;
+    try {
+      const talkBtn = await page.$('button:has-text("TALK")');
+      if (talkBtn) {
+        await talkBtn.click();
+        console.log(`Clicked TALK button on ${dev.name}`);
+        await page.waitForTimeout(1000);
+        const bodyText = await page.innerText('body');
+        talkButtonWorked = bodyText.includes('LISTENING') || bodyText.includes('பேசுங்கள்');
+        console.log(`Voice mode activated: ${talkButtonWorked ? 'YES' : 'NO'}`);
       }
+    } catch (err) {
+      console.warn('Voice interaction check skipped:', err.message);
     }
 
     results.push({
