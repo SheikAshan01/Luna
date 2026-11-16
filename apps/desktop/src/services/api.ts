@@ -9,6 +9,10 @@ export const getApiBaseUrl = (): string => {
   }
   const envUrl = (import.meta as any).env?.VITE_API_URL;
   if (envUrl && envUrl.trim()) return envUrl.trim().replace(/\/+$/, '');
+  // If running in HTTPS web app (e.g. Vercel), default to live InstaBox Cloud Backend
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    return 'https://8000-agq5ttvzyaj4xplxpo5qza4oza.instabox.tech';
+  }
   return 'http://127.0.0.1:8000';
 };
 
