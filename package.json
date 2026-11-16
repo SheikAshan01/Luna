@@ -12,6 +12,7 @@
     "test:backend": "powershell -Command \"$env:PYTHONPATH='backend'; .\\backend\\venv\\Scripts\\python -m pytest backend/tests -v\"",
     "dev:desktop": "npm run --workspace=apps/desktop dev",
     "build:desktop": "npm run --workspace=apps/desktop build",
+    "build:vercel": "npm run --workspace=apps/desktop build:vite",
     "dev:mobile": "npm run --workspace=apps/mobile start"
   },
   "keywords": [

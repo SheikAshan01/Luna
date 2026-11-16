@@ -9,6 +9,8 @@
  * - Strict Single-Stream Neural Playback: Exclusively plays ElevenLabs neural voice
  */
 
+import { getApiBaseUrl } from './api';
+
 export type SpeechCallback = (text: string, isFinal: boolean) => void;
 export type AutoSubmitCallback = (text: string) => void;
 export type VolumeCallback = (rmsPercent: number) => void;
@@ -335,7 +337,7 @@ export class LunaSpeechEngine {
       formData.append('file', audioBlob, 'speech.webm');
       formData.append('language', 'auto');
 
-      const res = await fetch('http://127.0.0.1:8000/api/voice/transcribe', {
+      const res = await fetch(`${getApiBaseUrl()}/api/voice/transcribe`, {
         method: 'POST',
         body: formData,
       });
@@ -379,7 +381,7 @@ export class LunaSpeechEngine {
         } catch {}
       }
 
-      const res = await fetch('http://127.0.0.1:8000/api/voice/speak', {
+      const res = await fetch(`${getApiBaseUrl()}/api/voice/speak`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, language: language || this.selectedLanguage }),

@@ -50,10 +50,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS configuration for Electron desktop and Expo React Native mobile
+# CORS configuration for Vercel Web, Electron desktop and Expo React Native mobile
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

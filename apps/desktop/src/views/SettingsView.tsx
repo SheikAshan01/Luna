@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Settings, Shield, Sliders, Database, Key, Radio, Terminal, FileText, Volume2, Sparkles, Play, CheckCircle2 } from 'lucide-react';
-import { LunaAPI } from '../services/api';
+import { Settings, Shield, Sliders, Database, Key, Radio, Terminal, FileText, Volume2, Sparkles, Play, CheckCircle2, Globe } from 'lucide-react';
+import { LunaAPI, getApiBaseUrl, setApiBaseUrl } from '../services/api';
 import { useLunaStore } from '../store/useLunaStore';
 import { speechEngine } from '../services/speech';
 
@@ -9,6 +9,7 @@ export const SettingsView: React.FC = () => {
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
+  const [serverUrl, setServerUrl] = useState(getApiBaseUrl());
 
   // Settings form states
   const [selectedAiMode, setSelectedAiMode] = useState(aiMode);
@@ -96,6 +97,39 @@ export const SettingsView: React.FC = () => {
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
+        {/* Backend Server Connection (InstaBox / Cloud) */}
+        <div className="glass-panel p-5 rounded-2xl border border-luna-border space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Globe className="w-5 h-5 text-luna-cyan" />
+              <span className="font-orbitron font-bold text-sm text-luna-text">
+                Backend Server URL (InstaBox / Cloud / Local)
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setApiBaseUrl(serverUrl);
+                setSavedMsg('Server URL updated successfully!');
+                setTimeout(() => setSavedMsg(''), 3000);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-luna-cyan/20 border border-luna-cyan/40 hover:bg-luna-cyan/30 text-luna-cyan text-xs font-orbitron transition-all"
+            >
+              Save Server URL
+            </button>
+          </div>
+          <p className="text-xs text-luna-muted font-rajdhani">
+            Enter your InstaBox Cloud URL (e.g. <code className="text-luna-cyan">https://sra-8000.instabox.sh</code>) or keep local default (<code className="text-luna-cyan">http://127.0.0.1:8000</code>).
+          </p>
+          <input
+            type="text"
+            value={serverUrl}
+            onChange={(e) => setServerUrl(e.target.value)}
+            placeholder="http://127.0.0.1:8000 or https://your-machine.instabox.sh"
+            className="w-full bg-luna-bg border border-luna-border rounded-xl px-4 py-2.5 text-xs text-luna-text font-mono focus:border-luna-cyan focus:outline-none"
+          />
+        </div>
+
         {/* AI Provider Section */}
         <div className="glass-panel p-5 rounded-2xl border border-luna-border space-y-4">
           <div className="flex items-center gap-2">
