@@ -40,11 +40,11 @@ class TTSEngine:
             return {"rate": "-6%", "pitch": "-3Hz", "emotion": "sad"}
 
         happy_indicators = [
-            "வாவ்", "வாழ்த்துகள்", "சந்தோஷம்", "மகிழ்ச்சி", "வெற்றி", "சூப்பர்", "அருமை", "கொண்டாடு",
-            "super", "congratulations", "happy", "awesome", "great", "celebrate", "wow", "yay", "hooray"
+            "வாவ்", "வாழ்த்துகள்", "சந்தோஷம்", "மகிழ்ச்சி", "வெற்றி", "சூப்பர்", "அருமை", "கொண்டாடு", "பாட்டு", "பாடுகிறேன்",
+            "super", "congratulations", "happy", "awesome", "great", "celebrate", "wow", "yay", "hooray", "sing", "song"
         ]
-        if any(w in text_lower for w in happy_indicators) or any(emoji in text for emoji in ["🎉", "✨", "🎊", "🥳"]):
-            return {"rate": "+20%", "pitch": "+3Hz", "emotion": "happy"}
+        if any(w in text_lower for w in happy_indicators) or any(emoji in text for emoji in ["🎉", "✨", "🎊", "🥳", "🎶", "🎵"]):
+            return {"rate": "+10%", "pitch": "+4Hz", "emotion": "happy"}
 
         return {"rate": "+15%", "pitch": "+0Hz", "emotion": "neutral"}
 
@@ -59,8 +59,9 @@ class TTSEngine:
         if not text or not text.strip():
             return b""
 
-        # Clean markdown symbols for natural speech pronunciation
+        # Clean markdown symbols and emojis for natural speech pronunciation
         clean_text = re.sub(r'[*#_`~\[\]<>]', '', text).strip()
+        clean_speech = re.sub(r'[\U00010000-\U0010ffff]', '', clean_text).strip() or clean_text
 
         # 1. Primary Priority: ElevenLabs Ultra-Realistic Neural AI Voice
         use_elevenlabs = settings.VOICE_SPEECH_PROVIDER.lower() == "elevenlabs" and bool(settings.ELEVENLABS_API_KEY)
@@ -117,7 +118,7 @@ class TTSEngine:
 
         # Primary: edge-tts (High-fidelity professional neural voice)
         try:
-            communicate = edge_tts.Communicate(clean_text, target_voice, rate=rate_str, pitch=pitch_str)
+            communicate = edge_tts.Communicate(clean_speech, target_voice, rate=rate_str, pitch=pitch_str)
             audio_buffer = bytearray()
             async for chunk in communicate.stream():
                 if chunk["type"] == "audio":

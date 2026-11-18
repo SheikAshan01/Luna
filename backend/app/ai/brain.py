@@ -120,8 +120,10 @@ class HybridAIBrain:
             "tools": LUNA_TOOLS,
             "tool_choice": "auto",
             "temperature": 0.6,
-            "max_tokens": 100
+            "max_tokens": 300
         }
+        if "gpt-oss" in settings.OPENAI_MODEL.lower():
+            payload["reasoning_effort"] = "low"
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(self.openai_url, headers=headers, json=payload)
@@ -167,8 +169,11 @@ class HybridAIBrain:
                 second_payload = {
                     "model": settings.OPENAI_MODEL,
                     "messages": follow_up_messages,
-                    "temperature": 0.7
+                    "temperature": 0.6,
+                    "max_tokens": 250
                 }
+                if "gpt-oss" in settings.OPENAI_MODEL.lower():
+                    second_payload["reasoning_effort"] = "low"
                 try:
                     sec_resp = await client.post(self.openai_url, headers=headers, json=second_payload)
                     if sec_resp.status_code == 200:

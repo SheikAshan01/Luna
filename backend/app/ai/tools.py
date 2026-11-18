@@ -194,7 +194,7 @@ LUNA_TOOLS: List[Dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "media_play_youtube",
-            "description": "Search and play a song, artist, video, or playlist on YouTube in the browser.",
+            "description": "Search and play a video or song directly on YouTube website in the browser. DO NOT call this if the user asks you to sing a song in your voice.",
             "parameters": {
                 "type": "object",
                 "properties": {
