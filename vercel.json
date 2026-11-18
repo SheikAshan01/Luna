@@ -1,23 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "services": {
-    "frontend": {
-      "root": "apps/desktop",
-      "framework": "vite"
-    },
-    "backend": {
-      "root": "backend",
-      "entrypoint": "main:app"
-    }
-  },
+  "buildCommand": "npm run --workspace=apps/desktop build:vite",
+  "outputDirectory": "apps/desktop/dist",
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": { "service": "backend" }
-    },
-    {
-      "source": "/(.*)",
-      "destination": { "service": "frontend" }
+      "destination": "/api/$1"
     }
   ]
 }
