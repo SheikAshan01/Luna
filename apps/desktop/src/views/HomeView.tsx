@@ -194,50 +194,6 @@ export const HomeView: React.FC = () => {
               liveVolume={liveVolume}
             />
           </div>
-
-          {/* Realtime Active Voice State Pill (ONLY shown during active speech/listening/thinking) */}
-          <div className="mt-8 sm:mt-10 w-full max-w-xs flex flex-col items-center min-h-[38px]">
-            <AnimatePresence mode="wait">
-              {isHearingSpeech || assistantState === 'listening' ? (
-                <motion.div
-                  key="listening"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="px-5 py-2 rounded-full bg-cyan-950/60 border border-cyan-400/60 backdrop-blur-2xl shadow-[0_0_30px_rgba(0,245,255,0.35)] flex items-center gap-2.5 text-cyan-200 text-xs font-orbitron font-extrabold tracking-widest"
-                >
-                  <div className="flex items-center gap-1">
-                    <span className="w-1.5 h-3.5 bg-cyan-400 rounded-full animate-bounce" />
-                    <span className="w-1.5 h-5 bg-cyan-400 rounded-full animate-bounce delay-100" />
-                    <span className="w-1.5 h-3.5 bg-cyan-400 rounded-full animate-bounce delay-200" />
-                  </div>
-                  <span>LISTENING</span>
-                </motion.div>
-              ) : assistantState === 'speaking' ? (
-                <motion.div
-                  key="speaking"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="px-5 py-2 rounded-full bg-purple-950/60 border border-purple-400/60 backdrop-blur-2xl shadow-[0_0_30px_rgba(168,85,247,0.4)] flex items-center gap-2 text-purple-200 text-xs font-orbitron font-extrabold tracking-widest"
-                >
-                  <Volume2 className="w-4 h-4 text-purple-400 animate-pulse" />
-                  <span>SPEAKING</span>
-                </motion.div>
-              ) : assistantState === 'thinking' || assistantState === 'processing' ? (
-                <motion.div
-                  key="thinking"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="px-5 py-2 rounded-full bg-purple-950/60 border border-purple-400/50 backdrop-blur-2xl shadow-[0_0_25px_rgba(168,85,247,0.3)] flex items-center gap-2 text-purple-300 text-xs font-orbitron font-bold tracking-widest"
-                >
-                  <Sparkles className="w-4 h-4 text-purple-400 animate-spin" />
-                  <span>THINKING</span>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-          </div>
         </div>
 
         {/* Right Desktop Holographic Acoustic Spectrum HUD (Hidden on mobile) */}
