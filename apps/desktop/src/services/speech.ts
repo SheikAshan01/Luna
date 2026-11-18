@@ -356,8 +356,8 @@ export class LunaSpeechEngine {
           // Silence detected
           this.silenceTimerMs += 40;
 
-          // After 850ms of quiet, the sentence is finished
-          if (this.silenceTimerMs >= 850) {
+          // Ultra-fast 400ms silence detection for instant voice responsiveness
+          if (this.silenceTimerMs >= 400) {
             if (duration >= 250) {
               this.stopSpeechRecording();
             } else {
@@ -563,8 +563,8 @@ export class LunaSpeechEngine {
         this.currentAudioSourceNode = null;
         // Re-enable microphone track
         this.setMicTracksEnabled(true);
-        // 700ms cooldown so mic does not pick up trailing speaker resonance
-        this.speechCooldownUntil = Date.now() + 700;
+        // Snappy 350ms cooldown so mic is immediately ready for next turn
+        this.speechCooldownUntil = Date.now() + 350;
       }
     }
   }

@@ -119,7 +119,8 @@ class HybridAIBrain:
             "messages": messages,
             "tools": LUNA_TOOLS,
             "tool_choice": "auto",
-            "temperature": 0.7
+            "temperature": 0.6,
+            "max_tokens": 100
         }
 
         async with httpx.AsyncClient(timeout=30.0) as client:

@@ -44,9 +44,9 @@ class TTSEngine:
             "super", "congratulations", "happy", "awesome", "great", "celebrate", "wow", "yay", "hooray"
         ]
         if any(w in text_lower for w in happy_indicators) or any(emoji in text for emoji in ["🎉", "✨", "🎊", "🥳"]):
-            return {"rate": "+8%", "pitch": "+4Hz", "emotion": "happy"}
+            return {"rate": "+20%", "pitch": "+3Hz", "emotion": "happy"}
 
-        return {"rate": "+0%", "pitch": "+0Hz", "emotion": "neutral"}
+        return {"rate": "+15%", "pitch": "+0Hz", "emotion": "neutral"}
 
     @classmethod
     async def synthesize(
