@@ -12,7 +12,7 @@
 import { getApiBaseUrl } from './api';
 
 export type SpeechCallback = (text: string, isFinal: boolean) => void;
-export type AutoSubmitCallback = (text: string) => void;
+export type AutoSubmitCallback = (text: string, gender?: 'male' | 'female') => void;
 export type VolumeCallback = (rmsPercent: number) => void;
 
 export class LunaSpeechEngine {
@@ -44,6 +44,11 @@ export class LunaSpeechEngine {
   private consecutiveSpeechFrames = 0;
   private silenceTimerMs = 0;
   private recordingStartTime = 0;
+
+  // Acoustic Pitch Tracking for Speaker Gender Recognition (Sir vs Ma'am)
+  private malePitchFrames = 0;
+  private femalePitchFrames = 0;
+  private lastDetectedGender: 'male' | 'female' = 'male';
 
   constructor() {
     this.setupAutoUnlock();
@@ -122,7 +127,7 @@ export class LunaSpeechEngine {
       if (this.audioContext) {
         const source = this.audioContext.createMediaStreamSource(this.mediaStream);
         this.analyser = this.audioContext.createAnalyser();
-        this.analyser.fftSize = 256;
+        this.analyser.fftSize = 1024;
         this.analyser.smoothingTimeConstant = 0.2;
         source.connect(this.analyser);
 
@@ -215,6 +220,8 @@ export class LunaSpeechEngine {
       this.silenceTimerMs = 0;
       this.recordingStartTime = Date.now();
       this.isRecordingChunk = true;
+      this.malePitchFrames = 0;
+      this.femalePitchFrames = 0;
 
       let mimeType = '';
       if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported) {
@@ -267,6 +274,8 @@ export class LunaSpeechEngine {
     this.isManualRecording = false;
     this.consecutiveSpeechFrames = 0;
     this.silenceTimerMs = 0;
+    // Compute dominant vocal fundamental frequency (Male vs Female tone)
+    this.lastDetectedGender = this.femalePitchFrames > this.malePitchFrames ? 'female' : 'male';
   }
 
   private abortRecording() {
@@ -324,8 +333,34 @@ export class LunaSpeechEngine {
         this.baselineNoise = Math.max(4, Math.min(14, Math.round(this.baselineNoise * 0.95 + rms * 0.05)));
       }
 
-      // Sensitive threshold: baseline + 3, minimum 6
-      const dynamicThreshold = Math.max(6, this.baselineNoise + 3);
+      // Highly sensitive threshold: baseline + 2, minimum 5
+      const dynamicThreshold = Math.max(5, this.baselineNoise + 2);
+
+      // Track vocal fundamental pitch for Sir vs Ma'am speaker gender adaptation
+      if (this.isRecordingChunk && this.audioContext && buffer.length >= 32) {
+        const sampleRate = this.audioContext.sampleRate || 48000;
+        const binWidth = sampleRate / 1024;
+        const minBin = Math.max(1, Math.floor(75 / binWidth));
+        const maxBin = Math.min(buffer.length - 1, Math.ceil(320 / binWidth));
+
+        let maxVal = 0;
+        let peakBin = minBin;
+        for (let b = minBin; b <= maxBin; b++) {
+          if (buffer[b] > maxVal) {
+            maxVal = buffer[b];
+            peakBin = b;
+          }
+        }
+
+        if (maxVal > 25) {
+          const estimatedPitch = peakBin * binWidth;
+          if (estimatedPitch >= 165) {
+            this.femalePitchFrames++;
+          } else if (estimatedPitch >= 75) {
+            this.malePitchFrames++;
+          }
+        }
+      }
 
       if (!this.isRecordingChunk) {
         // Not recording yet: look for speech onset
@@ -356,9 +391,9 @@ export class LunaSpeechEngine {
           // Silence detected
           this.silenceTimerMs += 40;
 
-          // Ultra-fast 400ms silence detection for instant voice responsiveness
-          if (this.silenceTimerMs >= 400) {
-            if (duration >= 250) {
+          // Natural 650ms silence detection: gives breathing room between Tamil words without cut-offs
+          if (this.silenceTimerMs >= 650) {
+            if (duration >= 300) {
               this.stopSpeechRecording();
             } else {
               this.abortRecording();
@@ -426,7 +461,7 @@ export class LunaSpeechEngine {
             this.speechCallback(text, true);
           }
           if (this.autoSubmitCallback) {
-            this.autoSubmitCallback(text);
+            this.autoSubmitCallback(text, this.lastDetectedGender);
           }
         } else {
           if (this.speechCallback) this.speechCallback('', true);

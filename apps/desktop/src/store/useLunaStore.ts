@@ -68,7 +68,7 @@ interface LunaStore {
   setVoiceAutoSpeak: (enabled: boolean) => void;
   setPendingConfirmation: (conf: PendingConfirmation | null) => void;
   fetchSystemHealth: () => Promise<void>;
-  sendMessage: (text: string) => Promise<void>;
+  sendMessage: (text: string, gender?: 'male' | 'female') => Promise<void>;
   confirmPendingAction: () => Promise<void>;
   cancelPendingAction: () => void;
   loadConversationMessages: (convId: string) => Promise<void>;
@@ -133,7 +133,7 @@ export const useLunaStore = create<LunaStore>((set, get) => ({
     }
   },
 
-  sendMessage: async (text: string) => {
+  sendMessage: async (text: string, gender?: 'male' | 'female') => {
     if (!text.trim()) return;
 
     const userMsg: ChatMessage = {
@@ -153,7 +153,9 @@ export const useLunaStore = create<LunaStore>((set, get) => ({
       const resp = await LunaAPI.sendChatMessage(
         text,
         get().currentConversationId || undefined,
-        get().language
+        get().language,
+        undefined,
+        gender
       );
 
       // Check if any tool result triggered confirmation challenge

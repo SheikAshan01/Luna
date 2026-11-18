@@ -37,11 +37,11 @@ export class LunaAPI {
     return res.json();
   }
 
-  static async sendChatMessage(message: string, conversationId?: string, language = 'ta-IN', confirmationToken?: string) {
+  static async sendChatMessage(message: string, conversationId?: string, language = 'ta-IN', confirmationToken?: string, gender?: 'male' | 'female') {
     const res = await fetch(`${getApiBaseUrl()}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, conversationId, language, confirmationToken }),
+      body: JSON.stringify({ message, conversationId, language, confirmationToken, gender }),
     });
     return res.json();
   }

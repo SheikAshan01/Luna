@@ -74,12 +74,21 @@ class HybridAIBrain:
         self,
         messages: List[Dict[str, Any]],
         system_override: Optional[str] = None,
-        confirmation_token: Optional[str] = None
+        confirmation_token: Optional[str] = None,
+        gender: Optional[str] = None
     ) -> AIResponse:
         # Prepend system prompt with user memories injected
         memories = self._get_relevant_memories(messages[-1].get("content", "") if messages else "")
         context_str = build_context_prompt(memories)
-        system_content = (system_override or LUNA_SYSTEM_PROMPT) + context_str
+
+        # Dynamic speaker gender adaptation (Voice Tone Recognition)
+        gender_hint = ""
+        if gender == "female":
+            gender_hint = "\n\n[SPEAKER DETECTED GENDER]: FEMALE. Address the user with respect as 'மேடம்' (Ma'am) in your response."
+        elif gender == "male":
+            gender_hint = "\n\n[SPEAKER DETECTED GENDER]: MALE. Address the user with respect as 'சார்' (Sir) in your response."
+
+        system_content = (system_override or LUNA_SYSTEM_PROMPT) + context_str + gender_hint
 
         formatted_messages = [{"role": "system", "content": system_content}]
         for m in messages:

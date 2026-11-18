@@ -26,6 +26,7 @@ class ChatRequest(BaseModel):
     conversationId: Optional[str] = None
     language: Optional[str] = "ta-IN"
     confirmationToken: Optional[str] = None
+    gender: Optional[str] = None
 
 class ActionRequest(BaseModel):
     actionId: str
@@ -93,10 +94,11 @@ async def chat_endpoint(req: ChatRequest):
         history_msgs = db.query(Message).filter(Message.conversation_id == conv_id).order_by(Message.created_at.asc()).limit(20).all()
         formatted_history = [{"role": m.role, "content": m.content} for m in history_msgs]
 
-        # Call AI Brain
+        # Call AI Brain with dynamic acoustic gender detection
         ai_resp = await ai_brain.chat(
             messages=formatted_history,
-            confirmation_token=req.confirmationToken
+            confirmation_token=req.confirmationToken,
+            gender=req.gender
         )
 
         # Save assistant message

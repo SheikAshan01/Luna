@@ -21,10 +21,10 @@ export const HomeView: React.FC = () => {
   const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
 
   useEffect(() => {
-    // 1. Instantly auto-submit transcribed query to AI Brain
-    speechEngine.setAutoSubmitCallback(async (query: string) => {
+    // 1. Instantly auto-submit transcribed query to AI Brain with acoustic gender detection
+    speechEngine.setAutoSubmitCallback(async (query: string, gender?: 'male' | 'female') => {
       setIsHearingSpeech(false);
-      await sendMessage(query);
+      await sendMessage(query, gender);
     });
 
     // 2. Real-time voice onset detection (No text display)
@@ -47,6 +47,24 @@ export const HomeView: React.FC = () => {
       speechEngine.stopSpeaking();
     };
   }, [sendMessage, setAssistantState]);
+
+  // Screen WakeLock for continuous hands-free (keeps screen awake like Siri/Alexa desk mode)
+  useEffect(() => {
+    let wakeLock: any = null;
+    const requestWakeLock = async () => {
+      if (isHandsFreeActive && typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+        try {
+          wakeLock = await (navigator as any).wakeLock.request('screen');
+        } catch {}
+      }
+    };
+    requestWakeLock();
+    return () => {
+      if (wakeLock) {
+        wakeLock.release().catch(() => {});
+      }
+    };
+  }, [isHandsFreeActive]);
 
   // Synchronously unlock audio hardware on every user gesture
   const handleUserGesture = async () => {
