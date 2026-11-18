@@ -98,26 +98,27 @@ class HybridAIBrain:
         has_openai = bool(settings.OPENAI_API_KEY and settings.OPENAI_API_KEY.strip())
 
         if mode == "online":
-            return await self._call_openai(formatted_messages, confirmation_token=confirmation_token)
+            return await self._call_openai(formatted_messages, confirmation_token=confirmation_token, gender=gender)
         elif mode == "offline":
-            return await self._call_offline_engine(formatted_messages, confirmation_token=confirmation_token)
+            return await self._call_offline_engine(formatted_messages, confirmation_token=confirmation_token, gender=gender)
         else:
             # Hybrid Mode
             if has_openai:
                 try:
-                    return await self._call_openai(formatted_messages, confirmation_token=confirmation_token)
+                    return await self._call_openai(formatted_messages, confirmation_token=confirmation_token, gender=gender)
                 except Exception as e:
                     logger.warning(f"OpenAI call failed in hybrid mode: {e}. Falling back to offline engine.")
-                    offline_resp = await self._call_offline_engine(formatted_messages, confirmation_token=confirmation_token)
+                    offline_resp = await self._call_offline_engine(formatted_messages, confirmation_token=confirmation_token, gender=gender)
                     offline_resp.fallback_occurred = True
                     return offline_resp
             else:
-                return await self._call_offline_engine(formatted_messages, confirmation_token=confirmation_token)
+                return await self._call_offline_engine(formatted_messages, confirmation_token=confirmation_token, gender=gender)
 
     async def _call_openai(
         self,
         messages: List[Dict[str, Any]],
-        confirmation_token: Optional[str] = None
+        confirmation_token: Optional[str] = None,
+        gender: Optional[str] = None
     ) -> AIResponse:
         headers = {
             "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
@@ -228,7 +229,8 @@ class HybridAIBrain:
     async def _call_offline_engine(
         self,
         messages: List[Dict[str, Any]],
-        confirmation_token: Optional[str] = None
+        confirmation_token: Optional[str] = None,
+        gender: Optional[str] = None
     ) -> AIResponse:
         # First attempt Ollama local LLM if available
         try:

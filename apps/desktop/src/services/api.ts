@@ -16,13 +16,18 @@ export const getApiBaseUrl = (): string => {
     } catch {}
 
     const saved = localStorage.getItem('luna_api_url');
-    if (saved && saved.trim()) return saved.trim().replace(/\/+$/, '');
+    // Purge old sleeping InstaBox sandbox URL if present
+    if (saved && saved.includes('instabox.tech')) {
+      localStorage.removeItem('luna_api_url');
+    } else if (saved && saved.trim()) {
+      return saved.trim().replace(/\/+$/, '');
+    }
   }
   const envUrl = (import.meta as any).env?.VITE_API_URL;
   if (envUrl && envUrl.trim()) return envUrl.trim().replace(/\/+$/, '');
-  // If running in HTTPS web app (e.g. Vercel), default to live InstaBox Cloud Backend
+  // If running in HTTPS web app (e.g. Vercel), default to same origin for direct Serverless API!
   if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
-    return 'https://8000-agq5ttvzyaj4xplxpo5qza4oza.instabox.tech';
+    return window.location.origin;
   }
   return 'http://127.0.0.1:8000';
 };
@@ -39,6 +44,10 @@ export class LunaAPI {
   }
 
   static async getHealth() {
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/api/health`);
+      if (res.ok) return await res.json();
+    } catch {}
     const res = await fetch(`${getApiBaseUrl()}/health`);
     return res.json();
   }

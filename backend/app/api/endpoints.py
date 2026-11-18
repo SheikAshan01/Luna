@@ -68,6 +68,19 @@ class VisionRequest(BaseModel):
     prompt: Optional[str] = "Analyze this screen and detect any errors or issues."
     language: Optional[str] = "ta-IN"
 
+# ----------------- Health -----------------
+@router.get("/health")
+async def health_endpoint():
+    ai_status = await ai_brain.get_health_status()
+    return {
+        "status": "healthy",
+        "service": "LUNA AI Core",
+        "version": "1.0.0",
+        "environment": settings.ENVIRONMENT,
+        "aiMode": settings.AI_MODE,
+        "aiStatus": ai_status,
+    }
+
 # ----------------- Chat & Conversations -----------------
 @router.post("/chat")
 async def chat_endpoint(req: ChatRequest):

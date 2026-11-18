@@ -8,8 +8,16 @@ import shutil
 import urllib.parse
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
-import psutil
-from PIL import ImageGrab, Image
+try:
+    import psutil
+except ImportError:
+    psutil = None
+
+try:
+    from PIL import ImageGrab, Image
+except ImportError:
+    ImageGrab = None
+    Image = None
 import io
 import base64
 import httpx

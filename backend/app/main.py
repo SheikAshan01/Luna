@@ -23,25 +23,35 @@ logger = logging.getLogger("luna.main")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: create tables
-    logger.info("Initializing LUNA AI database schema...")
-    Base.metadata.create_all(bind=engine)
-    logger.info("Database initialized successfully.")
+    # Startup: create tables safely
+    try:
+        logger.info("Initializing LUNA AI database schema...")
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database initialized successfully.")
+    except Exception as e:
+        logger.warning(f"Database schema init notice: {e}")
 
     # Start background automation scheduler
-    await automation_scheduler.start()
-    logger.info("Automation scheduler initialized.")
+    try:
+        await automation_scheduler.start()
+        logger.info("Automation scheduler initialized.")
+    except Exception as e:
+        logger.warning(f"Automation scheduler init notice: {e}")
 
     # Start Telegram Remote Bot if configured
-    telegram_bot.start()
+    try:
+        telegram_bot.start()
+    except Exception as e:
+        logger.warning(f"Telegram bot notice: {e}")
 
     yield
 
     # Shutdown
-    logger.info("Shutting down background services...")
-    telegram_bot.stop()
-    await automation_scheduler.stop()
-    logger.info("LUNA AI backend shutdown completed.")
+    try:
+        telegram_bot.stop()
+        await automation_scheduler.stop()
+    except Exception:
+        pass
 
 app = FastAPI(
     title="LUNA AI Core Engine",
@@ -61,6 +71,7 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api")
+app.include_router(api_router)
 
 @app.api_route("/", methods=["GET", "HEAD"])
 async def root_ping():

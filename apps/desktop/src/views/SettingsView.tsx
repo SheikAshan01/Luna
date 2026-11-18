@@ -65,7 +65,7 @@ export const SettingsView: React.FC = () => {
   const handleTestVoice = async () => {
     setIsTestingVoice(true);
     try {
-      await speechEngine.speak('Vanakkam sir! This is your ultra-realistic JARVIS voice ready at your command.');
+      await speechEngine.speak('Vanakkam! This is your ultra-realistic LUNA voice ready at your command.');
     } finally {
       setIsTestingVoice(false);
     }
@@ -119,7 +119,7 @@ export const SettingsView: React.FC = () => {
             </button>
           </div>
           <p className="text-xs text-luna-muted font-rajdhani">
-            Enter your InstaBox Cloud URL (e.g. <code className="text-luna-cyan">https://sra-8000.instabox.sh</code>) or keep local default (<code className="text-luna-cyan">http://127.0.0.1:8000</code>).
+            Leave blank or default to use the instant 24/7 Serverless Cloud API on Vercel, or provide a custom tunnel/local URL.
           </p>
           <input
             type="text"
@@ -213,7 +213,7 @@ export const SettingsView: React.FC = () => {
                   ElevenLabs Hyper-Realistic Voice Engine
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-luna-cyan/10 text-luna-cyan border border-luna-cyan/30 flex items-center gap-1">
                     <Sparkles className="w-2.5 h-2.5" />
-                    JARVIS GRADE
+                    LUNA NEURAL GRADE
                   </span>
                 </span>
                 <p className="text-[11px] text-luna-muted font-rajdhani mt-0.5">
@@ -245,7 +245,7 @@ export const SettingsView: React.FC = () => {
 
             <div>
               <label className="text-[10px] font-orbitron text-luna-muted">
-                JARVIS Voice Persona
+                LUNA Voice Persona
               </label>
               <select
                 value={elevenlabsVoiceId}
@@ -253,8 +253,8 @@ export const SettingsView: React.FC = () => {
                 className="w-full bg-luna-bg border border-luna-border rounded-lg px-3 py-2 text-xs text-luna-text font-mono mt-1 focus:border-luna-cyan outline-none"
               >
                 <option value="Qbw4VpyUrHEG7NigKzty">Your Custom Voice (Qbw4VpyUrHEG7NigKzty)</option>
-                <option value="pNInz6obpgDQGcFmaJgB">Adam (Deep, Calm Executive JARVIS)</option>
-                <option value="onwK4e9ZLuTAKqWW03F9">Daniel (British Aristocrat JARVIS)</option>
+                <option value="pNInz6obpgDQGcFmaJgB">Adam (Deep, Calm Executive LUNA)</option>
+                <option value="onwK4e9ZLuTAKqWW03F9">Daniel (British Aristocrat LUNA)</option>
                 <option value="ErXwobaYiN019PkySvjV">Antoni (Crisp, Energetic Modern AI)</option>
                 <option value="21m00Tcm4TlvDq8ikWAM">Rachel (Calm, Polite Assistant)</option>
               </select>
