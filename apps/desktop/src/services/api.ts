@@ -4,6 +4,17 @@
 
 export const getApiBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
+    // 1. Auto-pair from URL query parameter (e.g. ?api=https://xxxx.trycloudflare.com)
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const apiParam = params.get('api');
+      if (apiParam && apiParam.trim()) {
+        const clean = apiParam.trim().replace(/\/+$/, '');
+        localStorage.setItem('luna_api_url', clean);
+        return clean;
+      }
+    } catch {}
+
     const saved = localStorage.getItem('luna_api_url');
     if (saved && saved.trim()) return saved.trim().replace(/\/+$/, '');
   }
