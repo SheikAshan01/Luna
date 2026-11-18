@@ -14,6 +14,9 @@ import {
   Eye,
   CheckCircle2,
   Loader2,
+  Clock,
+  ShieldCheck,
+  PhoneCall,
 } from 'lucide-react';
 import { LunaOrb } from '../components/LunaOrb';
 import { useLunaStore } from '../store/useLunaStore';
@@ -33,6 +36,10 @@ export const HomeView: React.FC = () => {
   const [isHandsFreeActive, setIsHandsFreeActive] = useState(false);
   const [isHearingSpeech, setIsHearingSpeech] = useState(false);
 
+  // Active in-memory voice countdown timer
+  const [activeTimerSeconds, setActiveTimerSeconds] = useState<number | null>(null);
+  const [timerLabel, setTimerLabel] = useState<string>('Timer');
+
   // Camera Vision Mode states
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -43,10 +50,92 @@ export const HomeView: React.FC = () => {
 
   const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
 
+  // Countdown timer effect (In-memory only, 0 data saved)
+  useEffect(() => {
+    if (activeTimerSeconds === null || activeTimerSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setActiveTimerSeconds((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          speechEngine.speak(
+            language === 'ta-IN' ? 'நீங்கள் கேட்ட டைமர் முடிந்தது!' : 'Your timer has finished!',
+            language
+          );
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [activeTimerSeconds, language]);
+
   useEffect(() => {
     // 1. Instantly auto-submit transcribed query to AI Brain with acoustic gender detection
     speechEngine.setAutoSubmitCallback(async (query: string, gender?: 'male' | 'female') => {
       setIsHearingSpeech(false);
+      const q = query.trim();
+      const honorific =
+        gender === 'female'
+          ? language === 'ta-IN'
+            ? 'மேடம்'
+            : "Ma'am"
+          : language === 'ta-IN'
+          ? 'சார்'
+          : 'Sir';
+
+      // Feature A: Instant Voice Calling Intent
+      // e.g. "call 9876543210", "கால் 9876543210", "9876543210 ku call pannu"
+      const phoneMatch =
+        q.match(/(?:call|கால்)\s*([0-9\+\s]{10,14})/i) ||
+        q.match(/([0-9]{10})\s*(?:க்கு\s*கால்|ku\s*call)/i);
+      if (phoneMatch) {
+        const rawNum = phoneMatch[1].replace(/\s+/g, '');
+        if (rawNum.length >= 10) {
+          const speakText =
+            language === 'ta-IN'
+              ? `${honorific}, ${rawNum} எண்ணிற்கு கால் செய்கிறேன்.`
+              : `${honorific}, calling ${rawNum} now.`;
+          await speechEngine.speak(speakText, language);
+          window.location.href = `tel:${rawNum}`;
+          return;
+        }
+      }
+
+      // Feature B: Instant Voice Countdown Timer
+      // e.g. "5 minutes timer", "10 seconds timer", "5 நிமிடம் டைமர்", "30 வினாடி டைமர்"
+      const timerMatch =
+        q.match(/(\d+)\s*(நிமிடம்|நிமிஷம்|வினாடி|minutes?|secs?|seconds?)\s*(?:டைமர்|timer)/i) ||
+        q.match(/(?:டைமர்|timer)\s*(\d+)\s*(நிமிடம்|நிமிஷம்|வினாடி|minutes?|secs?|seconds?)/i);
+      if (timerMatch) {
+        const amount = parseInt(timerMatch[1], 10);
+        const unit = timerMatch[2].toLowerCase();
+        const isMin = unit.includes('நிமி') || unit.includes('min');
+        const totalSecs = isMin ? amount * 60 : amount;
+        setActiveTimerSeconds(totalSecs);
+        setTimerLabel(`${amount} ${isMin ? 'Min' : 'Sec'} Timer`);
+        const confirmText =
+          language === 'ta-IN'
+            ? `${honorific}, ${amount} ${isMin ? 'நிமிடத்திற்கு' : 'வினாடிக்கு'} டைமர் செட் செய்யப்பட்டது.`
+            : `${honorific}, timer set for ${amount} ${isMin ? 'minutes' : 'seconds'}.`;
+        await speechEngine.speak(confirmText, language);
+        return;
+      }
+
+      // Feature C: Instant YouTube Music Player Trigger
+      // e.g. "அனிருத் பாட்டு போடு", "பாடல் போடு Master", "play song Believer"
+      const musicMatch = q.match(/(?:பாட்டு\s*போடு|பாடல்\s*போடு|play\s*song)\s*(.*)/i);
+      if (musicMatch && musicMatch[1].trim()) {
+        const songName = musicMatch[1].trim();
+        const confirmText =
+          language === 'ta-IN'
+            ? `${honorific}, யூடியூபில் '${songName}' பாடலை இயக்குகிறேன்!`
+            : `${honorific}, playing '${songName}' on YouTube!`;
+        await speechEngine.speak(confirmText, language);
+        window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(songName)}`, '_blank');
+        return;
+      }
+
+      // Feature D: Zero-Data Ephemeral AI Chat & Dynamic Multi-User Honorific
       await sendMessage(query, gender);
     });
 
@@ -70,7 +159,7 @@ export const HomeView: React.FC = () => {
       speechEngine.stopSpeaking();
       stopCamera();
     };
-  }, [sendMessage, setAssistantState]);
+  }, [sendMessage, setAssistantState, language]);
 
   // Screen WakeLock for continuous hands-free (keeps screen awake like Siri/Alexa desk mode)
   useEffect(() => {
@@ -227,7 +316,9 @@ export const HomeView: React.FC = () => {
 
         const res = await ApiService.analyzeVision(b64, promptText, language);
         const explanation =
-          res.summary || res.tamilExplanation || (language === 'ta-IN' ? 'படம் வெற்றிகரமாக ஆராயப்பட்டது.' : 'Scene analyzed successfully.');
+          res.summary ||
+          res.tamilExplanation ||
+          (language === 'ta-IN' ? 'படம் வெற்றிகரமாக ஆராயப்பட்டது.' : 'Scene analyzed successfully.');
 
         setVisionResultText(explanation);
         setAssistantState('speaking');
@@ -238,7 +329,8 @@ export const HomeView: React.FC = () => {
       }
     } catch (err) {
       console.error('Vision analysis error:', err);
-      const errMsg = language === 'ta-IN' ? 'படத்தை ஆராய்வதில் சிக்கல் ஏற்பட்டது.' : 'Scene analysis failed. Please try again.';
+      const errMsg =
+        language === 'ta-IN' ? 'படத்தை ஆராய்வதில் சிக்கல் ஏற்பட்டது.' : 'Scene analysis failed. Please try again.';
       setVisionResultText(errMsg);
       await speechEngine.speak(errMsg, language);
     } finally {
@@ -280,6 +372,15 @@ export const HomeView: React.FC = () => {
           <span className="font-orbitron font-black text-sm sm:text-base tracking-[0.3em] text-white drop-shadow-[0_0_12px_rgba(0,245,255,0.7)]">
             LUNA
           </span>
+
+          {/* Zero Data Retention Privacy Badge */}
+          <div
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-orbitron text-emerald-400 font-semibold"
+            title="Zero Data Retention Active - No conversations or calls stored"
+          >
+            <ShieldCheck className="w-3 h-3 text-emerald-400" />
+            <span className="hidden md:inline">ZERO RETENTION</span>
+          </div>
         </div>
 
         {/* Right Action Controls: Vision AI, Morning Briefing, Test Sound & Language */}
@@ -357,8 +458,8 @@ export const HomeView: React.FC = () => {
               <span className="text-emerald-400 font-bold">650ms TUNED</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">VISION AI</span>
-              <span className="text-cyan-300 font-bold">MULTIMODAL</span>
+              <span className="text-slate-400">PRIVACY</span>
+              <span className="text-emerald-400 font-bold">ZERO RETENTION</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-slate-400">STATUS</span>
@@ -423,6 +524,30 @@ export const HomeView: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Floating Active Voice Timer HUD (Transient, 0 saved data) */}
+      <AnimatePresence>
+        {activeTimerSeconds !== null && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveTimerSeconds(null);
+            }}
+            className="fixed bottom-24 z-40 px-5 py-2.5 rounded-full bg-cyan-950/90 border border-cyan-400/60 backdrop-blur-2xl shadow-[0_0_30px_rgba(0,245,255,0.4)] flex items-center gap-2.5 cursor-pointer hover:border-rose-400 transition-all text-xs font-orbitron font-bold text-cyan-300"
+            title="Click to cancel timer"
+          >
+            <Clock className="w-4 h-4 text-cyan-400 animate-spin" />
+            <span>
+              {timerLabel}: {Math.floor(activeTimerSeconds / 60).toString().padStart(2, '0')}:
+              {(activeTimerSeconds % 60).toString().padStart(2, '0')}
+            </span>
+            <span className="text-[10px] text-white/50 ml-1 hover:text-rose-300">(TAP TO CANCEL)</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 4. Bottom Ultra-Clean Status / Action Button & Device Advisory */}
       <footer className="w-full max-w-sm sm:max-w-md lg:max-w-lg z-30 pb-2 sm:pb-3 flex flex-col items-center gap-2">
@@ -514,15 +639,11 @@ export const HomeView: React.FC = () => {
 
                 {/* Cybernetic Targeting Reticle Overlay */}
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                  {/* Outer reticle */}
                   <div className="w-44 h-44 sm:w-56 sm:h-56 rounded-full border border-cyan-400/30 border-dashed animate-spin [animation-duration:35s]" />
-                  {/* Inner reticle */}
                   <div className="absolute w-20 h-20 rounded-full border border-purple-400/40 animate-pulse" />
-                  {/* Center Crosshairs */}
                   <div className="absolute w-3 h-3 border-t-2 border-l-2 border-cyan-400" />
                   <div className="absolute w-3 h-3 border-b-2 border-r-2 border-cyan-400" />
 
-                  {/* Corner Viewfinder Brackets */}
                   <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-cyan-400/70" />
                   <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-cyan-400/70" />
                   <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-cyan-400/70" />

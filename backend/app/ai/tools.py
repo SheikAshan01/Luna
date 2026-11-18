@@ -222,6 +222,48 @@ LUNA_TOOLS: List[Dict[str, Any]] = [
     {
         "type": "function",
         "function": {
+            "name": "telephony_make_call",
+            "description": "Initiate a direct phone call to a phone number or contact name on user device.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "phone_number": {
+                        "type": "string",
+                        "description": "Phone number to call"
+                    },
+                    "contact_name": {
+                        "type": "string",
+                        "description": "Contact name (e.g. 'Amma', 'Boss', 'Friend')"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "system_timer",
+            "description": "Set a countdown timer or voice reminder in seconds or minutes.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "duration_seconds": {
+                        "type": "number",
+                        "description": "Timer duration in seconds"
+                    },
+                    "label": {
+                        "type": "string",
+                        "description": "Label or purpose for the timer"
+                    }
+                },
+                "required": ["duration_seconds"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "files_organize_folder",
             "description": "Automatically organize and clean files in Downloads or Desktop into categorized folders (Documents, Images, Media, Installers, Code).",
             "parameters": {

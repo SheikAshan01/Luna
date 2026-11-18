@@ -158,17 +158,41 @@ export const useLunaStore = create<LunaStore>((set, get) => ({
         gender
       );
 
-      // Check if any tool result triggered confirmation challenge
+      // Execute Client-Side Actions (Calling, WhatsApp, YouTube, Timers)
       if (resp.toolResults && resp.toolResults.length > 0) {
         for (const tr of resp.toolResults) {
-          if (tr.result && tr.result.confirmationRequired) {
+          const res = tr.result?.data || tr.result || {};
+
+          // 1. Phone Call Trigger
+          if ((tr.name === 'telephony_make_call' || res.action === 'call') && res.url) {
+            if (typeof window !== 'undefined') {
+              window.location.href = res.url;
+            }
+          }
+
+          // 2. WhatsApp Trigger
+          if ((tr.name === 'communication_send_whatsapp' || res.action === 'whatsapp') && res.url) {
+            if (typeof window !== 'undefined') {
+              window.open(res.url, '_blank');
+            }
+          }
+
+          // 3. YouTube Music Trigger
+          if (tr.name === 'media_play_youtube' && res.url) {
+            if (typeof window !== 'undefined') {
+              window.open(res.url, '_blank');
+            }
+          }
+
+          // Check if any tool result triggered confirmation challenge
+          if (res.confirmationRequired) {
             set({
               pendingConfirmation: {
-                confirmationToken: tr.result.confirmationToken,
-                actionId: tr.result.actionId,
-                permissionLevel: tr.result.permissionLevel || 'SENSITIVE',
-                parameters: tr.result.parameters || {},
-                message: tr.result.message || 'Explicit user confirmation required.',
+                confirmationToken: res.confirmationToken,
+                actionId: res.actionId,
+                permissionLevel: res.permissionLevel || 'SENSITIVE',
+                parameters: res.parameters || {},
+                message: res.message || 'Explicit user confirmation required.',
               },
             });
             break;

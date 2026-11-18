@@ -710,3 +710,31 @@ class ActionExecutor:
         import webbrowser
         webbrowser.open(search_url)
         return {"query": query, "url": search_url, "status": f"Google search opened for '{query}'."}
+
+    # 26. Make Phone Call
+    @staticmethod
+    async def _handle_telephony_make_call(params: Dict[str, Any]) -> Dict[str, Any]:
+        raw_phone = str(params.get("phone_number", "")).strip()
+        contact = str(params.get("contact_name", "")).strip()
+        clean_phone = re.sub(r"[^\d+]", "", raw_phone)
+        target = clean_phone or raw_phone or contact
+        return {
+            "action": "call",
+            "phoneNumber": clean_phone or raw_phone,
+            "contactName": contact,
+            "url": f"tel:{clean_phone or raw_phone}",
+            "status": f"Call initiated to {contact or clean_phone}."
+        }
+
+    # 27. Set Timer
+    @staticmethod
+    async def _handle_system_timer(params: Dict[str, Any]) -> Dict[str, Any]:
+        duration = float(params.get("duration_seconds", 60))
+        label = str(params.get("label", "Timer")).strip()
+        return {
+            "action": "timer",
+            "durationSeconds": duration,
+            "label": label,
+            "status": f"Timer set for {int(duration)} seconds."
+        }
+

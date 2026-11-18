@@ -27,6 +27,7 @@ class ChatRequest(BaseModel):
     language: Optional[str] = "ta-IN"
     confirmationToken: Optional[str] = None
     gender: Optional[str] = None
+    ephemeral: Optional[bool] = True  # Zero Data Retention: default True ensures complete privacy!
 
 class ActionRequest(BaseModel):
     actionId: str
@@ -70,6 +71,25 @@ class VisionRequest(BaseModel):
 # ----------------- Chat & Conversations -----------------
 @router.post("/chat")
 async def chat_endpoint(req: ChatRequest):
+    # 1. Zero Data Retention / Ephemeral Privacy Mode (Default)
+    if req.ephemeral:
+        formatted_messages = [{"role": "user", "content": req.message}]
+        ai_resp = await ai_brain.chat(
+            messages=formatted_messages,
+            confirmation_token=req.confirmationToken,
+            gender=req.gender
+        )
+        return {
+            "conversationId": "ephemeral-session",
+            "message": ai_resp.content,
+            "provider": ai_resp.provider,
+            "toolCalls": ai_resp.tool_calls,
+            "toolResults": ai_resp.tool_results,
+            "fallbackOccurred": ai_resp.fallback_occurred,
+            "ephemeral": True
+        }
+
+    # 2. Persistent mode (only if ephemeral is explicitly False)
     db = SessionLocal()
     try:
         conv_id = req.conversationId
@@ -122,6 +142,22 @@ async def chat_endpoint(req: ChatRequest):
         }
     finally:
         db.close()
+
+# ----------------- Absolute Privacy & Purge Endpoint -----------------
+@router.post("/privacy/purge")
+async def purge_all_data():
+    db = SessionLocal()
+    try:
+        db.query(Message).delete()
+        db.query(Conversation).delete()
+        db.commit()
+        return {
+            "success": True,
+            "message": "All database conversation records permanently erased. Zero data retained."
+        }
+    finally:
+        db.close()
+
 
 @router.get("/conversations")
 async def list_conversations():

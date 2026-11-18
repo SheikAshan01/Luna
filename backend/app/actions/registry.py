@@ -334,4 +334,30 @@ class ActionRegistry:
             }
         )
 
+        # 26. Make Phone Call
+        self._actions["telephony.make_call"] = ActionDefinition(
+            id="telephony.make_call",
+            name="Make Phone Call",
+            description="Initiate a direct phone call to a phone number or contact on mobile or desktop.",
+            permission_level=PermissionLevel.LOW_RISK,
+            confirmation_required=False,
+            parameters_schema={
+                "phone_number": {"type": "string", "required": False, "description": "Phone number to dial"},
+                "contact_name": {"type": "string", "required": False, "description": "Contact name to call"}
+            }
+        )
+
+        # 27. Set Timer
+        self._actions["system.timer"] = ActionDefinition(
+            id="system.timer",
+            name="Set Voice Timer",
+            description="Set a countdown timer or reminder.",
+            permission_level=PermissionLevel.READ_ONLY,
+            confirmation_required=False,
+            parameters_schema={
+                "duration_seconds": {"type": "number", "required": True, "description": "Timer duration in seconds"},
+                "label": {"type": "string", "required": False, "description": "Label or reason for timer"}
+            }
+        )
+
 action_registry = ActionRegistry()

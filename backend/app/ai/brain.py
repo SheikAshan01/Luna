@@ -452,6 +452,8 @@ class HybridAIBrain:
             "files_delete": "files.delete",
             "pc_lock": "pc.lock",
             "communication_send_whatsapp": "communication.send_whatsapp",
+            "telephony_make_call": "telephony.make_call",
+            "system_timer": "system.timer",
             "web_search": "web.search",
             "media_play_youtube": "media.play_youtube",
             "media_volume_set": "media.volume_set",
