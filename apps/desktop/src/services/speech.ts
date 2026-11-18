@@ -1,12 +1,12 @@
 /**
- * LUNA Desktop - Bulletproof Direct Hardware Microphone & Wake Word Speech Engine
+ * LUNA Desktop - Bulletproof Cross-Platform Speech Engine (iOS, Android, macOS, Windows)
  * Features:
- * - Fresh MediaRecorder per utterance: Guarantees 100% valid WebM EBML headers for Groq Whisper
- * - Instant Wake Word & Command Detection: Triggers on onset of "Luna", "Vanakkam", etc.
+ * - Web Audio API Primary Pipeline: Decodes & plays audio via AudioContext, completely bypassing iOS Safari HTML5 gesture expiration
+ * - Universal Audio Unlocker: Sync unlocks AudioContext & shared HTMLAudioElement on first user touch/click
+ * - Non-fragmented MediaRecorder: Omits timeslices on MP4/AAC to generate 100% valid moov/mdat containers for iOS Safari
+ * - Anti-Earpiece Mode: Dynamically toggles mic track during playback to prevent iOS from diverting loud speaker to telephone receiver
  * - Dynamic 850ms Silence Detection: Captures full sentences without awkward delays
  * - Acoustic Isolation: 700ms cooldown prevents assistant speaker audio from triggering mic
- * - Automatic AudioContext Unlock: Auto-resumes on load, window focus, or any user interaction
- * - Strict Single-Stream Neural Playback: Exclusively plays ElevenLabs neural voice
  */
 
 import { getApiBaseUrl } from './api';
@@ -26,7 +26,11 @@ export class LunaSpeechEngine {
   private audioChunks: Blob[] = [];
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
+
+  // Audio Playback
   private currentAudio: HTMLAudioElement | null = null;
+  private sharedAudioElement: HTMLAudioElement | null = null;
+  private currentAudioSourceNode: AudioBufferSourceNode | null = null;
   private activePlaybackId = 0;
   private speechCooldownUntil = 0;
 
@@ -43,24 +47,64 @@ export class LunaSpeechEngine {
 
   constructor() {
     this.setupAutoUnlock();
-    // Microphone is initialized lazily upon user interaction to prevent blocking UI load on mobile
   }
 
+  /**
+   * Listens for all user interaction events to unlock audio on iOS / Safari / Chrome mobile
+   */
   private setupAutoUnlock() {
     if (typeof window === 'undefined') return;
-    const unlock = () => {
-      if (this.audioContext && this.audioContext.state === 'suspended') {
-        this.audioContext.resume().catch(() => {});
+    const unlock = () => this.unlockAudio();
+    ['click', 'touchstart', 'touchend', 'pointerdown', 'keydown'].forEach((evt) => {
+      window.addEventListener(evt, unlock, { passive: true, once: false });
+    });
+  }
+
+  /**
+   * Synchronously unlocks audio hardware for iOS Safari / WebKit
+   */
+  public unlockAudio() {
+    // 1. Initialize & resume Web Audio API AudioContext
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!this.audioContext && AudioCtx) {
+        this.audioContext = new AudioCtx();
       }
-    };
-    window.addEventListener('focus', unlock);
-    window.addEventListener('pointerdown', unlock, { passive: true });
-    window.addEventListener('keydown', unlock, { passive: true });
+      if (this.audioContext) {
+        if (this.audioContext.state === 'suspended') {
+          this.audioContext.resume().catch(() => {});
+        }
+        // Play 1-sample silent buffer to activate iOS audio hardware
+        const buffer = this.audioContext.createBuffer(1, 1, 22050);
+        const source = this.audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(this.audioContext.destination);
+        source.start(0);
+      }
+    } catch (e) {
+      console.warn('AudioContext unlock notice:', e);
+    }
+
+    // 2. Initialize persistent HTMLAudioElement for iOS
+    try {
+      if (!this.sharedAudioElement) {
+        this.sharedAudioElement = new Audio();
+        this.sharedAudioElement.setAttribute('playsinline', 'true');
+        this.sharedAudioElement.setAttribute('webkit-playsinline', 'true');
+      }
+      // Play 1 millisecond silent WAV
+      this.sharedAudioElement.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+      this.sharedAudioElement.play().catch(() => {});
+    } catch (e) {
+      console.warn('HTMLAudioElement unlock notice:', e);
+    }
   }
 
   public async initMicrophone(): Promise<boolean> {
     try {
       if (this.mediaStream && this.mediaStream.active) return true;
+
+      this.unlockAudio();
 
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -71,17 +115,22 @@ export class LunaSpeechEngine {
       });
 
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      this.audioContext = new AudioCtx();
-      const source = this.audioContext.createMediaStreamSource(this.mediaStream);
-      this.analyser = this.audioContext.createAnalyser();
-      this.analyser.fftSize = 256;
-      this.analyser.smoothingTimeConstant = 0.2;
-      source.connect(this.analyser);
+      if (!this.audioContext && AudioCtx) {
+        this.audioContext = new AudioCtx();
+      }
 
-      if (this.audioContext.state === 'suspended') {
-        try {
-          await this.audioContext.resume();
-        } catch {}
+      if (this.audioContext) {
+        const source = this.audioContext.createMediaStreamSource(this.mediaStream);
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 256;
+        this.analyser.smoothingTimeConstant = 0.2;
+        source.connect(this.analyser);
+
+        if (this.audioContext.state === 'suspended') {
+          try {
+            await this.audioContext.resume();
+          } catch {}
+        }
       }
 
       return true;
@@ -103,7 +152,9 @@ export class LunaSpeechEngine {
     this.volumeCallback = cb;
   }
 
-  public setWakeWordCallback(_cb: () => void) {}
+  public setLanguage(lang: string) {
+    this.selectedLanguage = lang;
+  }
 
   public startListening() {
     this.startContinuousAutoListen();
@@ -113,11 +164,20 @@ export class LunaSpeechEngine {
     this.stopContinuousAutoListen();
   }
 
-  public setLanguage(lang: string) {
-    this.selectedLanguage = lang;
+  public setWakeWordCallback(_cb: () => void) {}
+
+  public async toggleManualRecord(): Promise<boolean> {
+    if (this.isListening) {
+      this.stopContinuousAutoListen();
+      return false;
+    } else {
+      await this.startContinuousAutoListen();
+      return true;
+    }
   }
 
   public async startContinuousAutoListen() {
+    this.unlockAudio();
     const ready = await this.initMicrophone();
     if (!ready) return;
 
@@ -140,21 +200,11 @@ export class LunaSpeechEngine {
     this.abortRecording();
   }
 
-  // Toggle Recording manually (Push-to-talk / Click-to-speak)
-  public async toggleManualRecord(): Promise<boolean> {
-    await this.initMicrophone();
-
-    if (this.isRecordingChunk) {
-      this.isManualRecording = false;
-      this.stopSpeechRecording();
-      return false;
-    } else {
-      this.isManualRecording = true;
-      this.startSpeechRecording();
-      if (this.speechCallback) {
-        this.speechCallback('🔴 Recording your command... (Click to finish)', false);
-      }
-      return true;
+  private setMicTracksEnabled(enabled: boolean) {
+    if (this.mediaStream) {
+      this.mediaStream.getAudioTracks().forEach((track) => {
+        track.enabled = enabled;
+      });
     }
   }
 
@@ -193,11 +243,13 @@ export class LunaSpeechEngine {
         this.processRecordedAudio();
       };
 
-      // Request data every 100ms
-      this.mediaRecorder.start(100);
+      // CRITICAL FOR IOS SAFARI: Do NOT pass a timeslice (e.g. 100ms) to start().
+      // Timeslices with audio/mp4 fragment the container and corrupt the MP4 header on WebKit.
+      // Calling start() without argument produces a single complete, valid audio file on stop().
+      this.mediaRecorder.start();
 
       if (!this.isManualRecording && this.speechCallback) {
-        this.speechCallback('🎙️ Hearing you... Speak your command or say "Luna"', false);
+        this.speechCallback('🎙️ Hearing you... பேசுங்கள்...', false);
       }
     } catch (e) {
       console.error('Failed to start MediaRecorder:', e);
@@ -287,10 +339,7 @@ export class LunaSpeechEngine {
         }
       } else {
         // Already recording: track speech continuation vs silence
-        if (this.isManualRecording) {
-          // In manual mode, user clicks to stop
-          return;
-        }
+        if (this.isManualRecording) return;
 
         const duration = now - this.recordingStartTime;
 
@@ -307,9 +356,8 @@ export class LunaSpeechEngine {
           // Silence detected
           this.silenceTimerMs += 40;
 
-          // After 850ms of quiet, the user has finished their sentence or wake word ("Luna")!
+          // After 850ms of quiet, the sentence is finished
           if (this.silenceTimerMs >= 850) {
-            // Only submit if utterance was at least 250ms (catches "Luna", "Hi", etc.)
             if (duration >= 250) {
               this.stopSpeechRecording();
             } else {
@@ -339,7 +387,7 @@ export class LunaSpeechEngine {
     }
 
     if (this.speechCallback) {
-      this.speechCallback('⚡ Processing with Groq Whisper...', false);
+      this.speechCallback('⚡ Processing voice...', false);
     }
 
     try {
@@ -393,13 +441,18 @@ export class LunaSpeechEngine {
   }
 
   /**
-   * Neural Speech Synthesis Playback
+   * High-Reliability Neural Speech Synthesis Playback
+   * Primary: Web Audio API (Plays reliably on iOS even after async delay)
+   * Secondary: Shared persistent HTMLAudioElement fallback
    */
   public async speak(text: string, language?: string): Promise<void> {
     this.stopSpeaking();
 
     const playbackId = ++this.activePlaybackId;
     this.isSpeaking = true;
+
+    // 1. Temporarily mute mic track so iOS doesn't divert audio to phone earpiece
+    this.setMicTracksEnabled(false);
 
     try {
       if (this.audioContext && this.audioContext.state === 'suspended') {
@@ -421,47 +474,96 @@ export class LunaSpeechEngine {
 
       const blob = await res.blob();
       if (blob.size < 100) return;
-
       if (playbackId !== this.activePlaybackId) return;
 
-      const audioUrl = URL.createObjectURL(blob);
-      const audio = new Audio(audioUrl);
-      this.currentAudio = audio;
+      // Method A: Web Audio API (Primary for iOS & Desktop)
+      let playedViaWebAudio = false;
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (!this.audioContext && AudioCtx) {
+          this.audioContext = new AudioCtx();
+        }
 
-      await new Promise<void>((resolve) => {
-        let finished = false;
-        const cleanup = () => {
-          if (finished) return;
-          finished = true;
-          if (playbackId === this.activePlaybackId) {
-            this.isSpeaking = false;
-            this.currentAudio = null;
-            // 700ms cooldown so mic does not pick up speaker audio
-            this.speechCooldownUntil = Date.now() + 700;
+        if (this.audioContext) {
+          if (this.audioContext.state === 'suspended') {
+            await this.audioContext.resume();
           }
-          try {
-            URL.revokeObjectURL(audioUrl);
-          } catch {}
-          resolve();
-        };
 
-        audio.onended = cleanup;
-        audio.onerror = cleanup;
+          const arrayBuffer = await blob.arrayBuffer();
+          const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
 
-        const watchdog = setTimeout(cleanup, 25000);
+          if (playbackId !== this.activePlaybackId) return;
 
-        audio.play().catch((err) => {
-          console.warn('Audio play prevented or interrupted:', err);
-          clearTimeout(watchdog);
-          cleanup();
+          await new Promise<void>((resolve) => {
+            const source = this.audioContext!.createBufferSource();
+            this.currentAudioSourceNode = source;
+            source.buffer = audioBuffer;
+            source.connect(this.audioContext!.destination);
+
+            let finished = false;
+            const finish = () => {
+              if (finished) return;
+              finished = true;
+              if (this.currentAudioSourceNode === source) {
+                this.currentAudioSourceNode = null;
+              }
+              resolve();
+            };
+
+            source.onended = finish;
+            const durationSec = audioBuffer.duration || 5;
+            setTimeout(finish, (durationSec + 2) * 1000);
+
+            source.start(0);
+            playedViaWebAudio = true;
+          });
+        }
+      } catch (webAudioErr) {
+        console.warn('Web Audio playback error, falling back to HTML5 Audio:', webAudioErr);
+        playedViaWebAudio = false;
+      }
+
+      // Method B: Fallback to persistent HTMLAudioElement
+      if (!playedViaWebAudio && playbackId === this.activePlaybackId) {
+        const audioUrl = URL.createObjectURL(blob);
+        const audio = this.sharedAudioElement || new Audio();
+        audio.setAttribute('playsinline', 'true');
+        audio.setAttribute('webkit-playsinline', 'true');
+        audio.src = audioUrl;
+        this.currentAudio = audio;
+
+        await new Promise<void>((resolve) => {
+          let finished = false;
+          const cleanup = () => {
+            if (finished) return;
+            finished = true;
+            try {
+              URL.revokeObjectURL(audioUrl);
+            } catch {}
+            resolve();
+          };
+
+          audio.onended = cleanup;
+          audio.onerror = cleanup;
+          const watchdog = setTimeout(cleanup, 25000);
+
+          audio.play().catch((err) => {
+            console.warn('HTML Audio play error:', err);
+            clearTimeout(watchdog);
+            cleanup();
+          });
         });
-      });
+      }
     } catch (err) {
       console.error('Speech synthesis request error:', err);
     } finally {
       if (playbackId === this.activePlaybackId) {
         this.isSpeaking = false;
         this.currentAudio = null;
+        this.currentAudioSourceNode = null;
+        // Re-enable microphone track
+        this.setMicTracksEnabled(true);
+        // 700ms cooldown so mic does not pick up trailing speaker resonance
         this.speechCooldownUntil = Date.now() + 700;
       }
     }
@@ -469,6 +571,13 @@ export class LunaSpeechEngine {
 
   public stopSpeaking() {
     this.activePlaybackId++;
+    if (this.currentAudioSourceNode) {
+      try {
+        this.currentAudioSourceNode.stop();
+        this.currentAudioSourceNode.disconnect();
+      } catch {}
+      this.currentAudioSourceNode = null;
+    }
     if (this.currentAudio) {
       try {
         this.currentAudio.onended = null;
@@ -478,8 +587,8 @@ export class LunaSpeechEngine {
       } catch {}
       this.currentAudio = null;
     }
+    this.setMicTracksEnabled(true);
     this.isSpeaking = false;
-    this.speechCooldownUntil = Date.now() + 400;
   }
 }
 

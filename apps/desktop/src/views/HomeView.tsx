@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, Globe, Sparkles, Volume2, MicOff, Radio } from 'lucide-react';
+import { Mic, Globe, Sparkles, Volume2, Radio } from 'lucide-react';
 import { LunaOrb } from '../components/LunaOrb';
 import { useLunaStore } from '../store/useLunaStore';
 import { speechEngine } from '../services/speech';
@@ -19,6 +19,8 @@ export const HomeView: React.FC = () => {
   const [liveVolume, setLiveVolume] = useState(0);
   const [isHandsFreeActive, setIsHandsFreeActive] = useState(false);
   const [isHearingSpeech, setIsHearingSpeech] = useState(false);
+
+  const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
 
   useEffect(() => {
     // 1. Auto-submit transcribed query to AI Brain
@@ -52,8 +54,19 @@ export const HomeView: React.FC = () => {
     };
   }, [sendMessage, setAssistantState]);
 
+  // Synchronously unlock audio hardware on every user gesture
+  const handleUserGesture = async () => {
+    speechEngine.unlockAudio();
+    if (!isHandsFreeActive) {
+      await speechEngine.startContinuousAutoListen();
+      setIsHandsFreeActive(true);
+      setLiveTranscript('');
+    }
+  };
+
   // Toggle continuous hands-free duplex voice mode
   const handleToggleHandsFree = async () => {
+    speechEngine.unlockAudio();
     if (isHandsFreeActive) {
       speechEngine.stopContinuousAutoListen();
       setIsHandsFreeActive(false);
@@ -67,12 +80,18 @@ export const HomeView: React.FC = () => {
     }
   };
 
-  // If user taps screen background while idle and not active, start hands-free
-  const handleContainerTap = async (e: React.MouseEvent) => {
-    if (!isHandsFreeActive) {
-      await speechEngine.startContinuousAutoListen();
-      setIsHandsFreeActive(true);
-    }
+  // Audio output test for mobile/iPhone
+  const handleTestAudio = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    speechEngine.unlockAudio();
+    setAssistantState('speaking');
+    await speechEngine.speak(
+      language === 'ta-IN'
+        ? 'வணக்கம்! நான் லூனா, உங்கள் குரலைக் கேட்க தயாராக இருக்கிறேன்.'
+        : 'Hello! I am Luna, ready to speak and assist you.',
+      language
+    );
+    setAssistantState('idle');
   };
 
   // Get the latest assistant response
@@ -80,7 +99,8 @@ export const HomeView: React.FC = () => {
 
   return (
     <div
-      onClick={handleContainerTap}
+      onClick={handleUserGesture}
+      onTouchStart={() => speechEngine.unlockAudio()}
       className="flex-1 flex flex-col h-full w-full bg-[#02040a] relative overflow-hidden select-none justify-between items-center py-6 px-4 cursor-pointer"
     >
       {/* 1. Deep Space Ambient Nebula Glow */}
@@ -111,17 +131,28 @@ export const HomeView: React.FC = () => {
           )}
         </div>
 
-        {/* Right Subtle Language Pill */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setLanguage(language === 'ta-IN' ? 'en-US' : 'ta-IN');
-          }}
-          className="px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-cyan-400/50 text-[11px] font-orbitron font-bold text-slate-300 hover:text-white transition-all flex items-center gap-2 backdrop-blur-xl shadow-lg cursor-pointer"
-        >
-          <Globe className="w-3.5 h-3.5 text-cyan-400" />
-          <span>{language === 'ta-IN' ? 'தமிழ்' : 'ENGLISH'}</span>
-        </button>
+        {/* Right Action Controls: Test Sound & Language Pill */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleTestAudio}
+            className="px-2.5 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-cyan-400/50 text-[11px] font-orbitron font-bold text-slate-300 hover:text-white transition-all flex items-center gap-1.5 backdrop-blur-xl shadow-lg cursor-pointer"
+            title="Test Voice Sound"
+          >
+            <Volume2 className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden sm:inline">TEST SOUND</span>
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setLanguage(language === 'ta-IN' ? 'en-US' : 'ta-IN');
+            }}
+            className="px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-cyan-400/50 text-[11px] font-orbitron font-bold text-slate-300 hover:text-white transition-all flex items-center gap-2 backdrop-blur-xl shadow-lg cursor-pointer"
+          >
+            <Globe className="w-3.5 h-3.5 text-cyan-400" />
+            <span>{language === 'ta-IN' ? 'தமிழ்' : 'ENGLISH'}</span>
+          </button>
+        </div>
       </header>
 
       {/* 3. Pure Cinematic Center Stage: The Majestic Quantum Orb */}
@@ -232,8 +263,8 @@ export const HomeView: React.FC = () => {
         </div>
       </main>
 
-      {/* 5. Bottom Ultra-Clean Status / Action Button */}
-      <footer className="w-full max-w-md z-30 pb-2 flex flex-col items-center">
+      {/* 5. Bottom Ultra-Clean Status / Action Button & Device Advisory */}
+      <footer className="w-full max-w-md z-30 pb-2 flex flex-col items-center gap-2">
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -264,6 +295,12 @@ export const HomeView: React.FC = () => {
             </>
           )}
         </button>
+
+        {isIOS && (
+          <p className="text-[10px] text-amber-300/80 font-rajdhani text-center tracking-wide">
+            🔔 iPhone: Ensure physical Silent switch is OFF and Volume is UP
+          </p>
+        )}
       </footer>
     </div>
   );
