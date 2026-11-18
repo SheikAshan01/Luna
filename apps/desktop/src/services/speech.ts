@@ -302,6 +302,11 @@ export class LunaSpeechEngine {
 
       // Suppress mic during assistant speech or during echo cooldown
       if (!this.isListening || this.isSpeaking || now < this.speechCooldownUntil) {
+        this.consecutiveSpeechFrames = 0;
+        this.silenceTimerMs = 0;
+        if (this.isRecordingChunk) {
+          this.abortRecording();
+        }
         if (this.volumeCallback && (this.isSpeaking || now < this.speechCooldownUntil)) {
           this.volumeCallback(0);
         }
@@ -415,8 +420,8 @@ export class LunaSpeechEngine {
     const audioBlob = new Blob(this.audioChunks, { type: recordedMime });
     this.audioChunks = [];
 
-    // Filter out tiny accidental noise spikes (< 250 bytes)
-    if (audioBlob.size < 250) {
+    // Filter out tiny accidental noise spikes (< 1200 bytes is < 0.4s)
+    if (audioBlob.size < 1200) {
       if (this.speechCallback) this.speechCallback('', true);
       return;
     }
@@ -598,8 +603,8 @@ export class LunaSpeechEngine {
         this.currentAudioSourceNode = null;
         // Re-enable microphone track
         this.setMicTracksEnabled(true);
-        // Snappy 350ms cooldown so mic is immediately ready for next turn
-        this.speechCooldownUntil = Date.now() + 350;
+        // Robust 1000ms echo cooldown so mic never hears room/speaker reverberations
+        this.speechCooldownUntil = Date.now() + 1000;
       }
     }
   }

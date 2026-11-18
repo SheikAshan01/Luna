@@ -16,7 +16,7 @@ import {
   Loader2,
   Clock,
   ShieldCheck,
-  PhoneCall,
+  User,
 } from 'lucide-react';
 import { LunaOrb } from '../components/LunaOrb';
 import { useLunaStore } from '../store/useLunaStore';
@@ -35,6 +35,9 @@ export const HomeView: React.FC = () => {
   const [liveVolume, setLiveVolume] = useState(0);
   const [isHandsFreeActive, setIsHandsFreeActive] = useState(false);
   const [isHearingSpeech, setIsHearingSpeech] = useState(false);
+
+  // Stable, Locked Speaker Honorific: Defaults to 'male' ("சார்"), user can click to switch to 'female' ("மேடம்")
+  const [userHonorific, setUserHonorific] = useState<'male' | 'female'>('male');
 
   // Active in-memory voice countdown timer
   const [activeTimerSeconds, setActiveTimerSeconds] = useState<number | null>(null);
@@ -57,8 +60,18 @@ export const HomeView: React.FC = () => {
       setActiveTimerSeconds((prev) => {
         if (prev === null || prev <= 1) {
           clearInterval(interval);
+          const honorificText =
+            userHonorific === 'female'
+              ? language === 'ta-IN'
+                ? 'மேடம்'
+                : "Ma'am"
+              : language === 'ta-IN'
+              ? 'சார்'
+              : 'Sir';
           speechEngine.speak(
-            language === 'ta-IN' ? 'நீங்கள் கேட்ட டைமர் முடிந்தது!' : 'Your timer has finished!',
+            language === 'ta-IN'
+              ? `${honorificText}, நீங்கள் கேட்ட டைமர் முடிந்தது!`
+              : `${honorificText}, your timer has finished!`,
             language
           );
           return null;
@@ -67,21 +80,44 @@ export const HomeView: React.FC = () => {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [activeTimerSeconds, language]);
+  }, [activeTimerSeconds, language, userHonorific]);
 
   useEffect(() => {
-    // 1. Instantly auto-submit transcribed query to AI Brain with acoustic gender detection
-    speechEngine.setAutoSubmitCallback(async (query: string, gender?: 'male' | 'female') => {
+    // 1. Instantly auto-submit transcribed query to AI Brain with stable honorific
+    speechEngine.setAutoSubmitCallback(async (query: string) => {
       setIsHearingSpeech(false);
       const q = query.trim();
+      if (!q) return;
+
       const honorific =
-        gender === 'female'
+        userHonorific === 'female'
           ? language === 'ta-IN'
             ? 'மேடம்'
             : "Ma'am"
           : language === 'ta-IN'
           ? 'சார்'
           : 'Sir';
+
+      // Feature S: Direct Melodious Tamil Song Singing in Luna's Own Voice
+      // e.g. "பாட்டு பாடு", "ஒரு பாட்டு பாடு", "பாடல் பாடு", "song பாடு", "song pada sona", "sing a song", "sing"
+      const isSingRequest =
+        q.match(/(?:பாட்டு\s*பாடு|பாடல்\s*பாடு|பாடி\s*காட்டு|song\s*பாடு|song\s*pada|பாடு|sing\s*a\s*song|sing\s*for\s*me|sing)/i) &&
+        !q.match(/(?:போடு|play|youtube)/i);
+
+      if (isSingRequest) {
+        const songVerses = [
+          `🎶 கண்ணே கலைமானே... கன்னி மயிலெனக் கண்டேன் உனை நானே... அந்திப் பகல் உனை நான் பார்க்கிறேன்... கண்ணில் விழுந்ததும் நான் தோற்கிறேன்... 🎶 ${honorific}, உங்களுக்காக இந்தப் பாடலை பாடினேன்! பிடித்திருக்கிறதா?`,
+          `🎶 தென்றல் வந்து தீண்டும் போது என்ன வண்ணமோ மனசுல... திங்கள் வந்து காயும் போது என்ன வெயிலோ நெனப்புல... வந்து வந்து போகுதம்மா என்னென்னமோ நெனப்புல... 🎶 ${honorific}, என் பாட்டு எப்படி இருந்தது?`,
+          `🎶 சின்னச் சின்ன ஆசை... சிறகடிக்கும் ஆசை... முத்து முத்து ஆசை... முடிந்து வைத்த ஆசை... 🎶 ${honorific}, உங்களுக்காக இந்த இனிமையான பாடலை பாடினேன்!`,
+          `🎶 மலரே மௌனமா... மௌனமே வேதமா... மலர்கள் பேசுமா... பேசினால் ஓயுமா... 🎶 ${honorific}, இந்த அழகான பாடல் உங்களுக்குப் பிடித்ததா?`,
+          `🎶 என்னுள்ளே என்னுள்ளே பல மின்னல் எழும் நேரம்... எங்கும் நிறைகின்றதே ஓர் அமைதி நிலவும்... 🎶 பாடி முடித்துவிட்டேன் ${honorific}!`,
+        ];
+        const chosenSong = songVerses[Math.floor(Math.random() * songVerses.length)];
+        setAssistantState('speaking');
+        await speechEngine.speak(chosenSong, language);
+        setAssistantState('idle');
+        return;
+      }
 
       // Feature A: Instant Voice Calling Intent
       // e.g. "call 9876543210", "கால் 9876543210", "9876543210 ku call pannu"
@@ -135,8 +171,8 @@ export const HomeView: React.FC = () => {
         return;
       }
 
-      // Feature D: Zero-Data Ephemeral AI Chat & Dynamic Multi-User Honorific
-      await sendMessage(query, gender);
+      // Feature D: Zero-Data Ephemeral AI Chat with Stable Honorific
+      await sendMessage(query, userHonorific);
     });
 
     // 2. Real-time voice onset detection (No text display)
@@ -159,7 +195,7 @@ export const HomeView: React.FC = () => {
       speechEngine.stopSpeaking();
       stopCamera();
     };
-  }, [sendMessage, setAssistantState, language]);
+  }, [sendMessage, setAssistantState, language, userHonorific]);
 
   // Screen WakeLock for continuous hands-free (keeps screen awake like Siri/Alexa desk mode)
   useEffect(() => {
@@ -207,10 +243,18 @@ export const HomeView: React.FC = () => {
     e.stopPropagation();
     speechEngine.unlockAudio();
     setAssistantState('speaking');
+    const honorificText =
+      userHonorific === 'female'
+        ? language === 'ta-IN'
+          ? 'மேடம்'
+          : "Ma'am"
+        : language === 'ta-IN'
+        ? 'சார்'
+        : 'Sir';
     await speechEngine.speak(
       language === 'ta-IN'
-        ? 'வணக்கம்! நான் லூனா, உங்கள் குரலைக் கேட்க தயாராக இருக்கிறேன்.'
-        : 'Hello! I am Luna, ready to speak and assist you.',
+        ? `வணக்கம் ${honorificText}! நான் லூனா, உங்கள் குரலைக் கேட்க தயாராக இருக்கிறேன்.`
+        : `Hello ${honorificText}! I am Luna, ready to speak and assist you.`,
       language
     );
     setAssistantState('idle');
@@ -225,7 +269,7 @@ export const HomeView: React.FC = () => {
       language === 'ta-IN'
         ? 'காலை வணக்கம் லூனா! இன்றைய நாளின் சுருக்கமான பிரீஃபிங் மற்றும் ஒரு நல்ல சிந்தனை சொல்லு.'
         : 'Good morning Luna! Give me a brief morning status update and motivational thought.';
-    await sendMessage(briefingPrompt);
+    await sendMessage(briefingPrompt, userHonorific);
   };
 
   // Camera Vision Mode controls
@@ -383,8 +427,21 @@ export const HomeView: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Action Controls: Vision AI, Morning Briefing, Test Sound & Language */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5">
+        {/* Right Action Controls: Honorific, Vision AI, Briefing, Test Sound & Language */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* One-tap Honorific Lock: சார் (Sir) / மேடம் (Ma'am) */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setUserHonorific((prev) => (prev === 'male' ? 'female' : 'male'));
+            }}
+            className="px-2.5 sm:px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-cyan-400/50 text-[11px] font-orbitron font-bold text-slate-300 hover:text-white transition-all flex items-center gap-1.5 backdrop-blur-xl shadow-lg cursor-pointer hover:shadow-[0_0_15px_rgba(0,245,255,0.25)]"
+            title="Click to toggle between Sir (சார்) and Ma'am (மேடம்)"
+          >
+            <User className="w-3.5 h-3.5 text-cyan-400" />
+            <span>{userHonorific === 'male' ? 'சார்' : 'மேடம்'}</span>
+          </button>
+
           {/* Camera Vision AI Trigger Button */}
           <button
             onClick={handleToggleCamera}
@@ -425,7 +482,7 @@ export const HomeView: React.FC = () => {
               e.stopPropagation();
               setLanguage(language === 'ta-IN' ? 'en-US' : 'ta-IN');
             }}
-            className="px-3 sm:px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-cyan-400/50 text-[11px] font-orbitron font-bold text-slate-300 hover:text-white transition-all flex items-center gap-1.5 backdrop-blur-xl shadow-lg cursor-pointer hover:shadow-[0_0_15px_rgba(0,245,255,0.25)]"
+            className="px-2.5 sm:px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-cyan-400/50 text-[11px] font-orbitron font-bold text-slate-300 hover:text-white transition-all flex items-center gap-1.5 backdrop-blur-xl shadow-lg cursor-pointer hover:shadow-[0_0_15px_rgba(0,245,255,0.25)]"
           >
             <Globe className="w-3.5 h-3.5 text-cyan-400" />
             <span>{language === 'ta-IN' ? 'தமிழ்' : 'ENG'}</span>
@@ -454,8 +511,8 @@ export const HomeView: React.FC = () => {
               <span className="text-purple-300 font-bold">EDGE NEURAL</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">ACOUSTIC VAD</span>
-              <span className="text-emerald-400 font-bold">650ms TUNED</span>
+              <span className="text-slate-400">ECHO SHIELD</span>
+              <span className="text-emerald-400 font-bold">ACTIVE 1000ms</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-slate-400">PRIVACY</span>

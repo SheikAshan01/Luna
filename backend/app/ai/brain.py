@@ -194,6 +194,7 @@ class HybridAIBrain:
                     logger.warning(f"Second-pass LLM summary failed: {ex}")
 
             # Ensure Luna ALWAYS provides a voice response when tools are executed
+            h_term = "மேடம்" if gender == "female" else "சார்"
             if not content or not content.strip():
                 if executed_tool_results:
                     first_res = executed_tool_results[0]
@@ -205,17 +206,17 @@ class HybridAIBrain:
                             app_n = json.loads(arg_raw).get("app_name", "app")
                         except Exception:
                             app_n = "app"
-                        content = f"கண்டிப்பாக சார், {app_n.upper()} இப்போது திறக்கிறேன்." if succ else f"மன்னிக்கவும் சார், {app_n} திறக்க முடியவில்லை."
+                        content = f"கண்டிப்பாக {h_term}, {app_n.upper()} இப்போது திறக்கிறேன்." if succ else f"மன்னிக்கவும் {h_term}, {app_n} திறக்க முடியவில்லை."
                     elif t_name == "media_play_youtube":
-                        content = "கண்டிப்பாக சார், நீங்கள் கேட்ட பாடலை இப்போது யூடியூபில் இயக்குகிறேன்!"
+                        content = f"கண்டிப்பாக {h_term}, நீங்கள் கேட்ட பாடலை இப்போது யூடியூபில் இயக்குகிறேன்!"
                     elif t_name == "communication_send_whatsapp":
-                        content = "வாட்ஸ்அப்பில் செய்தி அனுப்ப தயார் செய்துவிட்டேன் சார்."
+                        content = f"வாட்ஸ்அப்பில் செய்தி அனுப்ப தயார் செய்துவிட்டேன் {h_term}."
                     elif succ:
-                        content = "கண்டிப்பாக சார், உங்கள் கட்டளை வெற்றிகரமாக நிறைவேற்றப்பட்டது."
+                        content = f"கண்டிப்பாக {h_term}, உங்கள் கட்டளை வெற்றிகரமாக நிறைவேற்றப்பட்டது."
                     else:
-                        content = "மன்னிக்கவும் சார், கட்டளையை நிறைவேற்றுவதில் சிக்கல் ஏற்பட்டது."
+                        content = f"மன்னிக்கவும் {h_term}, கட்டளையை நிறைவேற்றுவதில் சிக்கல் ஏற்பட்டது."
                 else:
-                    content = "சொல்லுங்கள் சார்! நான் உங்களுக்கு உதவ தயாராக உள்ளேன்."
+                    content = f"சொல்லுங்கள் {h_term}! நான் உங்களுக்கு உதவ தயாராக உள்ளேன்."
 
             return AIResponse(
                 content=content,
@@ -354,16 +355,23 @@ class HybridAIBrain:
             executed_tool_results.append({"toolCallId": "call_lock", "name": "pc_lock", "result": exec_res})
             return AIResponse(content="விண்டோஸ் கணினி உடனடியாக பூட்டப்பட்டது சார்.", provider="luna-local-engine", tool_calls=tool_calls, tool_results=executed_tool_results)
 
-        # 7. Sing a Song ("oru paatu paadu", "sing a song")
-        if any(w in q for w in ["paatu paadu", "paattu paadu", "pada sona", "sing a song", "sing for me", "oru paatu", "பாட்டு பாடு", "பாடல்"]):
-            lyrics = "கண்ணே கலைமானே... கன்னி மயிலெனக் கண்டேன் உனை நானே! 🎵 உங்களுக்காக இந்த இனிமையான பாடலை பாடினேன் சார்!"
+        # 7. Sing a Song ("oru paatu paadu", "sing a song", "pada sona")
+        if any(w in q for w in ["paatu paadu", "paattu paadu", "pada sona", "sing a song", "sing for me", "oru paatu", "பாட்டு பாடு", "பாடல் பாடு", "பாடு", "sing", "song pada", "பாடி காட்டு"]):
+            honorific = "மேடம்" if gender == "female" else "சார்"
+            songs = [
+                f"🎶 கண்ணே கலைமானே... கன்னி மயிலெனக் கண்டேன் உனை நானே... அந்திப் பகல் உனை நான் பார்க்கிறேன்... கண்ணில் விழுந்ததும் நான் தோற்கிறேன்... 🎶 {honorific}, உங்களுக்காக இந்தப் பாடலை பாடினேன்! பிடித்திருக்கிறதா?",
+                f"🎶 தென்றல் வந்து தீண்டும் போது என்ன வண்ணமோ மனசுல... திங்கள் வந்து காயும் போது என்ன வெயிலோ நெனப்புல... 🎶 {honorific}, என் பாடல் உங்களுக்குப் பிடித்ததா?",
+                f"🎶 சின்னச் சின்ன ஆசை... சிறகடிக்கும் ஆசை... முத்து முத்து ஆசை... முடிந்து வைத்த ஆசை... 🎶 {honorific}, பாடி முடித்துவிட்டேன்!"
+            ]
+            import random
+            lyrics = random.choice(songs)
             return AIResponse(content=lyrics, provider="luna-local-engine")
 
         # 8. Play Songs on YouTube ("Leo song podu", "Hukum play pannu", "music play pannu")
-        if any(w in q for w in ["podu", "play song", "paatu podu", "song play", "paattu podu", "பாட்டு"]) or ("play" in q and any(w in q for w in ["song", "music", "anirudh", "ar rahman", "leo", "jailer", "tamil"])):
+        if not any(w in q for w in ["paadu", "பாடு", "sing", "song pada", "pada sona"]) and (any(w in q for w in ["podu", "play song", "paatu podu", "song play", "paattu podu", "பாட்டு போடு", "பாடல் போடு"]) or ("play" in q and any(w in q for w in ["song", "music", "anirudh", "ar rahman", "leo", "jailer", "tamil"]))):
             # Extract song keywords
             cleaned_song = q
-            for noise in ["luna", "enakku", "oru", "podu", "play", "pannu", "song", "paatu", "paattu", "youtube-la", "youtubela", "பாட்டு"]:
+            for noise in ["luna", "enakku", "oru", "podu", "play", "pannu", "song", "paatu", "paattu", "youtube-la", "youtubela", "பாட்டு போடு"]:
                 cleaned_song = cleaned_song.replace(noise, "")
             song_name = cleaned_song.strip() or "trending tamil songs"
             tool_calls.append({"id": "call_yt", "function": {"name": "media_play_youtube", "arguments": json.dumps({"query": song_name})}})
