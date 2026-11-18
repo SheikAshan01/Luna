@@ -35,8 +35,8 @@ export const Header: React.FC = () => {
       {/* Brand Hologram */}
       <div className="flex items-center gap-2.5">
         <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_#00F5FF]" />
-        <span className="font-orbitron font-black tracking-[0.22em] text-xs text-white">
-          LUNA <span className="text-cyan-400 font-semibold">QUANTUM JARVIS</span>
+        <span className="font-orbitron font-black tracking-[0.25em] text-xs text-white">
+          LUNA
         </span>
       </div>
 

@@ -46,12 +46,19 @@ class VisionAnalyzer:
         # Cloud Vision with Groq / OpenAI compatible vision model
         if settings.OPENAI_API_KEY:
             try:
-                system_instruction = (
-                    "You are LUNA Vision Analyzer. Analyze the user's screenshot. "
-                    "Detect any visible errors, warnings, code, or UI elements. "
-                    "Provide a crisp executive summary in English, followed by a friendly explanation in Tamil/Tanglish. "
-                    "Suggest concrete troubleshooting steps."
-                )
+                if language.startswith("ta"):
+                    system_instruction = (
+                        "You are LUNA, an ultra-intelligent, friendly AI companion. "
+                        "The user captured a photo or showed their camera/screen. "
+                        "Carefully analyze what you see in the image and describe it out loud in natural, warm, conversational Tamil (தமிழ்) in 2 to 3 sentences. "
+                        "If you see objects, persons, text, mathematics, or surroundings, explain clearly as if speaking directly to the user."
+                    )
+                else:
+                    system_instruction = (
+                        "You are LUNA, an ultra-intelligent, friendly AI companion. "
+                        "The user captured a photo or showed their camera/screen. "
+                        "Carefully analyze what you see in the image and describe it out loud in natural, warm, conversational English in 2 to 3 sentences."
+                    )
                 headers = {
                     "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
                     "Content-Type": "application/json"
@@ -73,19 +80,19 @@ class VisionAnalyzer:
                             ]
                         }
                     ],
-                    "max_tokens": 800
+                    "max_tokens": 500
                 }
                 async with httpx.AsyncClient(timeout=45.0) as client:
                     res = await client.post(f"{base_url}/chat/completions", headers=headers, json=payload)
                     if res.status_code == 200:
-                        content = res.json()["choices"][0]["message"]["content"]
+                        content = res.json()["choices"][0]["message"]["content"].strip()
                         return {
                             "summary": content,
                             "width": width,
                             "height": height,
                             "model": model_name,
                             "detectedErrors": "Analyzed via Multimodal Vision AI",
-                            "tamilExplanation": "Screen scan mudinjidhu. Melaye solution details irukku.",
+                            "tamilExplanation": content,
                             "timestamp": datetime.now(timezone.utc).isoformat()
                         }
                     else:

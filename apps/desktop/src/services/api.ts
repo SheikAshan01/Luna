@@ -143,11 +143,11 @@ export class LunaAPI {
     return res.json();
   }
 
-  static async analyzeVision(imageBase64?: string, prompt?: string) {
+  static async analyzeVision(imageBase64?: string, prompt?: string, language = 'ta-IN') {
     const res = await fetch(`${getApiBaseUrl()}/api/vision/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64, prompt }),
+      body: JSON.stringify({ imageBase64, prompt, language }),
     });
     return res.json();
   }
@@ -175,3 +175,6 @@ export class LunaAPI {
     return `${getApiBaseUrl()}/api/voice/speak`;
   }
 }
+
+export { LunaAPI as ApiService };
+

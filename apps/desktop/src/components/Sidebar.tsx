@@ -16,7 +16,7 @@ export const Sidebar: React.FC = () => {
     <aside className="hidden md:flex w-60 border-r border-white/10 bg-[#060812]/90 backdrop-blur-2xl flex-col justify-between py-5 select-none z-40 shrink-0">
       <div className="flex flex-col gap-3 px-4">
         <div className="px-3 py-1 text-[10px] font-orbitron font-extrabold tracking-[0.2em] text-cyan-400/70 uppercase flex items-center justify-between">
-          <span>JARVIS NAVIGATION</span>
+          <span>LUNA HUD</span>
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#10B981]" />
         </div>
 

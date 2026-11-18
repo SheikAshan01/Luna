@@ -1,7 +1,7 @@
 {
-  "name": "LUNA AI — JARVIS Assistant",
+  "name": "LUNA AI",
   "short_name": "LUNA",
-  "description": "Personal Intelligent AI Companion & JARVIS Assistant",
+  "description": "Personal Intelligent AI Companion",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#02040a",
