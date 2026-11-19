@@ -16,18 +16,15 @@ export const getApiBaseUrl = (): string => {
     } catch {}
 
     const saved = localStorage.getItem('luna_api_url');
-    // Purge old sleeping InstaBox sandbox URL if present
-    if (saved && saved.includes('instabox.tech')) {
-      localStorage.removeItem('luna_api_url');
-    } else if (saved && saved.trim()) {
+    if (saved && saved.trim()) {
       return saved.trim().replace(/\/+$/, '');
     }
   }
   const envUrl = (import.meta as any).env?.VITE_API_URL;
   if (envUrl && envUrl.trim()) return envUrl.trim().replace(/\/+$/, '');
-  // If running in HTTPS web app (e.g. Vercel), default to same origin for direct Serverless API!
+  // Default to live 24/7 InstaBox backend with keep-alive
   if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
-    return window.location.origin;
+    return 'https://8000-agq5ttvzyaj4xplxpo5qza4oza.instabox.tech';
   }
   return 'http://127.0.0.1:8000';
 };
