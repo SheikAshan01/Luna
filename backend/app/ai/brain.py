@@ -84,9 +84,9 @@ class HybridAIBrain:
         # Dynamic speaker gender adaptation (Voice Tone Recognition)
         gender_hint = ""
         if gender == "female":
-            gender_hint = "\n\n[SPEAKER DETECTED GENDER]: FEMALE. Address the user with respect as 'மேடம்' (Ma'am) in your response."
+            gender_hint = "\n\n[SPEAKER DETECTED GENDER]: FEMALE. Address the user with respect as 'Madam' in your response (always write 'Madam' in English letters)."
         elif gender == "male":
-            gender_hint = "\n\n[SPEAKER DETECTED GENDER]: MALE. Address the user with respect as 'சார்' (Sir) in your response."
+            gender_hint = "\n\n[SPEAKER DETECTED GENDER]: MALE. Address the user with respect as 'Sir' in your response (always write 'Sir' in English letters)."
 
         system_content = (system_override or LUNA_SYSTEM_PROMPT) + context_str + gender_hint
 
@@ -195,7 +195,7 @@ class HybridAIBrain:
                     logger.warning(f"Second-pass LLM summary failed: {ex}")
 
             # Ensure Luna ALWAYS provides a voice response when tools are executed
-            h_term = "மேடம்" if gender == "female" else "சார்"
+            h_term = "Madam" if gender == "female" else "Sir"
             if not content or not content.strip():
                 if executed_tool_results:
                     first_res = executed_tool_results[0]
@@ -255,33 +255,35 @@ class HybridAIBrain:
                 last_user_msg = m["content"]
                 break
 
-        return await self._deterministic_nlp_engine(last_user_msg, confirmation_token)
+        return await self._deterministic_nlp_engine(last_user_msg, confirmation_token, gender=gender)
 
     async def _deterministic_nlp_engine(
         self,
         query: str,
-        confirmation_token: Optional[str] = None
+        confirmation_token: Optional[str] = None,
+        gender: Optional[str] = None
     ) -> AIResponse:
         q = query.lower().strip()
         executed_tool_results = []
         tool_calls = []
+        h = "Madam" if gender == "female" else "Sir"
 
         # 1. Greetings & Wake Words (Tamil / English)
         if q in ["luna", "hey luna", "hi luna", "hello luna", "lunaa", "லூனா"] or any(w in q for w in ["vanakkam", "hey luna", "hi luna", "hello luna", "sollu luna"]):
-            reply = "சொல்லுங்கள் சார்! லூனா தயார். என்ன செய்ய வேண்டும்?"
+            reply = f"சொல்லுங்கள் {h}! லூனா தயார். என்ன செய்ய வேண்டும்?"
             return AIResponse(content=reply, provider="luna-local-engine")
 
         if any(w in q for w in ["epdi irukka", "eppadi irukeenga", "how are you", "who are you", "yaaru nee", "un peru enna"]):
-            reply = "நான் நலமாக இருக்கிறேன் சார்! நான் தான் உங்கள் தனிப்பட்ட உதவியாளர் லூனா. உங்களுக்கு என்ன உதவி வேண்டும் சொல்லுங்கள்!"
+            reply = f"நான் நலமாக இருக்கிறேன் {h}! நான் தான் உங்கள் தனிப்பட்ட உதவியாளர் லூனா. உங்களுக்கு என்ன உதவி வேண்டும் சொல்லுங்கள்!"
             return AIResponse(content=reply, provider="luna-local-engine")
 
         # 2. Emotional Feelings (Sad / Hurt vs Happy / Excited)
         if any(w in q for w in ["sad", "கவலை", "சோகம்", "kashtam", "valikudhu", "alone", "crying", "depressed"]):
-            reply = "கவலைப்படாதீர்கள் சார்... என்ன நடந்தது? உங்கள் மனசுல உள்ளதை என்னிடம் சொல்லுங்கள், நான் எப்போதும் உங்களுடன் இருப்பேன்."
+            reply = f"கவலைப்படாதீர்கள் {h}... என்ன நடந்தது? உங்கள் மனசுல உள்ளதை என்னிடம் சொல்லுங்கள், நான் எப்போதும் உங்களுடன் இருப்பேன்."
             return AIResponse(content=reply, provider="luna-local-engine")
 
         if any(w in q for w in ["happy", "சந்தோஷம்", "pass", "win", "semma", "mass", "super", "celebrate"]):
-            reply = "வாவ் சார்! எனக்கு ரொம்ப ரொம்ப சந்தோஷம்! வாழ்த்துகள், சூப்பரா பண்ணியிருக்கீங்க! 🎉"
+            reply = f"வாவ் {h}! எனக்கு ரொம்ப ரொம்ப சந்தோஷம்! வாழ்த்துகள், சூப்பரா பண்ணியிருக்கீங்க! 🎉"
             return AIResponse(content=reply, provider="luna-local-engine")
 
         # 3. Application Launch (Only if specific app is explicitly mentioned!)
@@ -309,9 +311,9 @@ class HybridAIBrain:
             executed_tool_results.append({"toolCallId": "call_app_open", "name": "app_open", "result": exec_res})
             
             if exec_res.get("success"):
-                reply = f"கண்டிப்பாக சார், {target_app.upper()} இப்போது திறக்கிறேன்."
+                reply = f"கண்டிப்பாக {h}, {target_app.upper()} இப்போது திறக்கிறேன்."
             else:
-                reply = f"மன்னிக்கவும் சார், {target_app} திறக்க முடியவில்லை: {exec_res.get('error', 'Unknown issue')}."
+                reply = f"மன்னிக்கவும் {h}, {target_app} திறக்க முடியவில்லை: {exec_res.get('error', 'Unknown issue')}."
             
             return AIResponse(content=reply, provider="luna-local-engine", tool_calls=tool_calls, tool_results=executed_tool_results)
 
@@ -325,9 +327,9 @@ class HybridAIBrain:
             if data.get("hasBattery"):
                 pct = data.get("percent")
                 plugged = "மற்றும் சார்ஜரில் இணைக்கப்பட்டுள்ளது" if data.get("powerPlugged") else "மற்றும் பேட்டரியில் இயங்குகிறது"
-                reply = f"கணினியின் பேட்டரி அளவு தற்போது {pct}% உள்ளது, {plugged} சார்."
+                reply = f"கணினியின் பேட்டரி அளவு தற்போது {pct}% உள்ளது, {plugged} {h}."
             else:
-                reply = "உங்கள் கணினி நேரடி மின்சாரத்தில் இயங்குகிறது (பேட்டரி இல்லை) சார்."
+                reply = f"உங்கள் கணினி நேரடி மின்சாரத்தில் இயங்குகிறது (பேட்டரி இல்லை) {h}."
             return AIResponse(content=reply, provider="luna-local-engine", tool_calls=tool_calls, tool_results=executed_tool_results)
 
         # 4. System Health / CPU ("CPU usage", "system health", "ram status")
@@ -339,7 +341,7 @@ class HybridAIBrain:
             data = exec_res.get("data", {})
             cpu = data.get("cpuUsagePercent", 0)
             mem = data.get("memoryUsagePercent", 0)
-            reply = f"கணினி நிலை சீராக உள்ளது சார். சிபியு பயன்பாடு {cpu}% மற்றும் ரேம் {mem}% பயன்பாட்டில் உள்ளது."
+            reply = f"கணினி நிலை சீராக உள்ளது {h}. சிபியு பயன்பாடு {cpu}% மற்றும் ரேம் {mem}% பயன்பாட்டில் உள்ளது."
             return AIResponse(content=reply, provider="luna-local-engine", tool_calls=tool_calls, tool_results=executed_tool_results)
 
         # 5. Screenshot / Screen error ("screen capture", "screenshot edu", "error paaru")
@@ -347,7 +349,7 @@ class HybridAIBrain:
             tool_calls.append({"id": "call_screenshot", "function": {"name": "system_capture_screenshot", "arguments": "{}"}})
             exec_res = await self._execute_tool("system_capture_screenshot", {}, confirmation_token)
             executed_tool_results.append({"toolCallId": "call_screenshot", "name": "system_capture_screenshot", "result": exec_res})
-            reply = "திரை நகல் எடுக்கப்பட்டது சார். உங்கள் திரை இப்போது ஆய்வு செய்ய தயாராக உள்ளது."
+            reply = f"திரை நகல் எடுக்கப்பட்டது {h}. உங்கள் திரை இப்போது ஆய்வு செய்ய தயாராக உள்ளது."
             return AIResponse(content=reply, provider="luna-local-engine", tool_calls=tool_calls, tool_results=executed_tool_results)
 
         # 6. Lock PC
@@ -355,15 +357,14 @@ class HybridAIBrain:
             tool_calls.append({"id": "call_lock", "function": {"name": "pc_lock", "arguments": "{}"}})
             exec_res = await self._execute_tool("pc_lock", {}, confirmation_token)
             executed_tool_results.append({"toolCallId": "call_lock", "name": "pc_lock", "result": exec_res})
-            return AIResponse(content="விண்டோஸ் கணினி உடனடியாக பூட்டப்பட்டது சார்.", provider="luna-local-engine", tool_calls=tool_calls, tool_results=executed_tool_results)
+            return AIResponse(content=f"விண்டோஸ் கணினி உடனடியாக பூட்டப்பட்டது {h}.", provider="luna-local-engine", tool_calls=tool_calls, tool_results=executed_tool_results)
 
         # 7. Sing a Song ("oru paatu paadu", "sing a song", "pada sona")
         if any(w in q for w in ["paatu paadu", "paattu paadu", "pada sona", "sing a song", "sing for me", "oru paatu", "பாட்டு பாடு", "பாடல் பாடு", "பாடு", "sing", "song pada", "பாடி காட்டு"]):
-            honorific = "மேடம்" if gender == "female" else "சார்"
             songs = [
-                f"🎶 கண்ணே கலைமானே... கன்னி மயிலெனக் கண்டேன் உனை நானே... அந்திப் பகல் உனை நான் பார்க்கிறேன்... கண்ணில் விழுந்ததும் நான் தோற்கிறேன்... 🎶 {honorific}, உங்களுக்காக இந்தப் பாடலை பாடினேன்! பிடித்திருக்கிறதா?",
-                f"🎶 தென்றல் வந்து தீண்டும் போது என்ன வண்ணமோ மனசுல... திங்கள் வந்து காயும் போது என்ன வெயிலோ நெனப்புல... 🎶 {honorific}, என் பாடல் உங்களுக்குப் பிடித்ததா?",
-                f"🎶 சின்னச் சின்ன ஆசை... சிறகடிக்கும் ஆசை... முத்து முத்து ஆசை... முடிந்து வைத்த ஆசை... 🎶 {honorific}, பாடி முடித்துவிட்டேன்!"
+                f"🎶 கண்ணே கலைமானே... கன்னி மயிலெனக் கண்டேன் உனை நானே... அந்திப் பகல் உனை நான் பார்க்கிறேன்... கண்ணில் விழுந்ததும் நான் தோற்கிறேன்... 🎶 {h}, உங்களுக்காக இந்தப் பாடலை பாடினேன்! பிடித்திருக்கிறதா?",
+                f"🎶 தென்றல் வந்து தீண்டும் போது என்ன வண்ணமோ மனசுல... திங்கள் வந்து காயும் போது என்ன வெயிலோ நெனப்புல... 🎶 {h}, என் பாடல் உங்களுக்குப் பிடித்ததா?",
+                f"🎶 சின்னச் சின்ன ஆசை... சிறகடிக்கும் ஆசை... முத்து முத்து ஆசை... முடிந்து வைத்த ஆசை... 🎶 {h}, பாடி முடித்துவிட்டேன்!"
             ]
             import random
             lyrics = random.choice(songs)
@@ -378,7 +379,7 @@ class HybridAIBrain:
             song_name = cleaned_song.strip() or "trending tamil songs"
             tool_calls.append({"id": "call_yt", "function": {"name": "media_play_youtube", "arguments": json.dumps({"query": song_name})}})
             exec_res = await self._execute_tool("media_play_youtube", {"query": song_name}, confirmation_token)
-            return AIResponse(content=f"கண்டிப்பாக சார், யூடியூபில் '{song_name}' பாடலை இப்போது இயக்குகிறேன்!", provider="luna-local-engine", tool_calls=tool_calls, tool_results=[{"toolCallId": "call_yt", "name": "media_play_youtube", "result": exec_res}])
+            return AIResponse(content=f"கண்டிப்பாக {h}, யூடியூபில் '{song_name}' பாடலை இப்போது இயக்குகிறேன்!", provider="luna-local-engine", tool_calls=tool_calls, tool_results=[{"toolCallId": "call_yt", "name": "media_play_youtube", "result": exec_res}])
 
         # 9. Send WhatsApp Message to Number ("9876543210-ku message pannu: Hello")
         import re
@@ -394,7 +395,7 @@ class HybridAIBrain:
 
             tool_calls.append({"id": "call_wa", "function": {"name": "communication_send_whatsapp", "arguments": json.dumps({"phone_number": phone_num, "message": msg_text})}})
             exec_res = await self._execute_tool("communication_send_whatsapp", {"phone_number": phone_num, "message": msg_text}, confirmation_token)
-            return AIResponse(content=f"வாட்ஸ்அப்பில் {phone_num} எண்ணிற்கு செய்தி அனுப்ப பக்கம் திறக்கப்பட்டது சார்!", provider="luna-local-engine", tool_calls=tool_calls, tool_results=[{"toolCallId": "call_wa", "name": "communication_send_whatsapp", "result": exec_res}])
+            return AIResponse(content=f"வாட்ஸ்அப்பில் {phone_num} எண்ணிற்கு செய்தி அனுப்ப பக்கம் திறக்கப்பட்டது {h}!", provider="luna-local-engine", tool_calls=tool_calls, tool_results=[{"toolCallId": "call_wa", "name": "communication_send_whatsapp", "result": exec_res}])
 
         # 10. Media Controls (Volume, Play, Pause)
         if "volume" in q or "sound" in q:
@@ -405,25 +406,25 @@ class HybridAIBrain:
                     break
             tool_calls.append({"id": "call_vol", "function": {"name": "media_volume_set", "arguments": json.dumps({"level": level})}})
             exec_res = await self._execute_tool("media_volume_set", {"level": level}, confirmation_token)
-            return AIResponse(content=f"ஒலியளவு {level}% ஆக மாற்றப்பட்டது சார்.", provider="luna-local-engine", tool_calls=tool_calls, tool_results=[{"toolCallId": "call_vol", "name": "media_volume_set", "result": exec_res}])
+            return AIResponse(content=f"ஒலியளவு {level}% ஆக மாற்றப்பட்டது {h}.", provider="luna-local-engine", tool_calls=tool_calls, tool_results=[{"toolCallId": "call_vol", "name": "media_volume_set", "result": exec_res}])
 
         if any(w in q for w in ["pause", "stop music", "resume"]):
             tool_calls.append({"id": "call_playpause", "function": {"name": "media_play_pause", "arguments": "{}"}})
             exec_res = await self._execute_tool("media_play_pause", {}, confirmation_token)
-            return AIResponse(content="பாடலின் இயக்கம் மாற்றப்பட்டது சார்.", provider="luna-local-engine", tool_calls=tool_calls, tool_results=[{"toolCallId": "call_playpause", "name": "media_play_pause", "result": exec_res}])
+            return AIResponse(content=f"பாடலின் இயக்கம் மாற்றப்பட்டது {h}.", provider="luna-local-engine", tool_calls=tool_calls, tool_results=[{"toolCallId": "call_playpause", "name": "media_play_pause", "result": exec_res}])
 
         # 11. File Organization ("organize downloads", "sort files")
         if "organize" in q or "sort" in q:
             tool_calls.append({"id": "call_organize", "function": {"name": "files_organize_folder", "arguments": "{}"}})
             exec_res = await self._execute_tool("files_organize_folder", {}, confirmation_token)
-            return AIResponse(content="பதிவிறக்கம் கோப்புறையிலுள்ள கோப்புகள் ஒழுங்குபடுத்தப்பட்டன சார்.", provider="luna-local-engine", tool_calls=tool_calls, tool_results=[{"toolCallId": "call_organize", "name": "files_organize_folder", "result": exec_res}])
+            return AIResponse(content=f"பதிவிறக்கம் கோப்புறையிலுள்ள கோப்புகள் ஒழுங்குபடுத்தப்பட்டன {h}.", provider="luna-local-engine", tool_calls=tool_calls, tool_results=[{"toolCallId": "call_organize", "name": "files_organize_folder", "result": exec_res}])
 
         # Default helpful response
         is_english = all(ord(c) < 128 for c in query) and not any(w in q for w in ["sollu", "pannu", "podu", "paadu", "paaru", "epdi", "irukku", "enna", "inga", "vanakkam", "luna"])
         if is_english:
-            reply = f"Understood, sir! Luna is ready. How can I assist you today?"
+            reply = f"Understood, {h}! Luna is ready. How can I assist you today?"
         else:
-            reply = "புரிந்துகொண்டேன் சார்! உங்கள் கட்டளையை நிறைவேற்ற லூனா தயாராக உள்ளது. சொல்லுங்கள் சார், என்ன செய்ய வேண்டும்?"
+            reply = f"புரிந்துகொண்டேன் {h}! உங்கள் கட்டளையை நிறைவேற்ற லூனா தயாராக உள்ளது. சொல்லுங்கள் {h}, என்ன செய்ய வேண்டும்?"
         return AIResponse(content=reply, provider="luna-local-engine")
 
     async def _execute_tool(

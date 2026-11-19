@@ -36,7 +36,7 @@ export const HomeView: React.FC = () => {
   const [isHandsFreeActive, setIsHandsFreeActive] = useState(false);
   const [isHearingSpeech, setIsHearingSpeech] = useState(false);
 
-  // Stable, Locked Speaker Honorific: Defaults to 'male' ("சார்"), user can click to switch to 'female' ("மேடம்")
+  // Stable, Locked Speaker Honorific: Defaults to 'male' ("Sir"), user can click to switch to 'female' ("Madam")
   const [userHonorific, setUserHonorific] = useState<'male' | 'female'>('male');
 
   // Active in-memory voice countdown timer
@@ -60,14 +60,7 @@ export const HomeView: React.FC = () => {
       setActiveTimerSeconds((prev) => {
         if (prev === null || prev <= 1) {
           clearInterval(interval);
-          const honorificText =
-            userHonorific === 'female'
-              ? language === 'ta-IN'
-                ? 'மேடம்'
-                : "Ma'am"
-              : language === 'ta-IN'
-              ? 'சார்'
-              : 'Sir';
+          const honorificText = userHonorific === 'female' ? 'Madam' : 'Sir';
           speechEngine.speak(
             language === 'ta-IN'
               ? `${honorificText}, நீங்கள் கேட்ட டைமர் முடிந்தது!`
@@ -89,14 +82,7 @@ export const HomeView: React.FC = () => {
       const q = query.trim();
       if (!q) return;
 
-      const honorific =
-        userHonorific === 'female'
-          ? language === 'ta-IN'
-            ? 'மேடம்'
-            : "Ma'am"
-          : language === 'ta-IN'
-          ? 'சார்'
-          : 'Sir';
+      const honorific = userHonorific === 'female' ? 'Madam' : 'Sir';
 
       // Feature S: Direct Melodious Tamil Song Singing in Luna's Own Voice
       // e.g. "பாட்டு பாடு", "ஒரு பாட்டு பாடு", "பாடல் பாடு", "song பாடு", "song pada sona", "sing a song", "sing"
@@ -243,14 +229,7 @@ export const HomeView: React.FC = () => {
     e.stopPropagation();
     speechEngine.unlockAudio();
     setAssistantState('speaking');
-    const honorificText =
-      userHonorific === 'female'
-        ? language === 'ta-IN'
-          ? 'மேடம்'
-          : "Ma'am"
-        : language === 'ta-IN'
-        ? 'சார்'
-        : 'Sir';
+    const honorificText = userHonorific === 'female' ? 'Madam' : 'Sir';
     await speechEngine.speak(
       language === 'ta-IN'
         ? `வணக்கம் ${honorificText}! நான் லூனா, உங்கள் குரலைக் கேட்க தயாராக இருக்கிறேன்.`
@@ -429,17 +408,17 @@ export const HomeView: React.FC = () => {
 
         {/* Right Action Controls: Honorific, Vision AI, Briefing, Test Sound & Language */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* One-tap Honorific Lock: சார் (Sir) / மேடம் (Ma'am) */}
+          {/* One-tap Honorific Lock: Sir / Madam */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               setUserHonorific((prev) => (prev === 'male' ? 'female' : 'male'));
             }}
             className="px-2.5 sm:px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-cyan-400/50 text-[11px] font-orbitron font-bold text-slate-300 hover:text-white transition-all flex items-center gap-1.5 backdrop-blur-xl shadow-lg cursor-pointer hover:shadow-[0_0_15px_rgba(0,245,255,0.25)]"
-            title="Click to toggle between Sir (சார்) and Ma'am (மேடம்)"
+            title="Click to toggle between Sir and Madam"
           >
             <User className="w-3.5 h-3.5 text-cyan-400" />
-            <span>{userHonorific === 'male' ? 'சார்' : 'மேடம்'}</span>
+            <span>{userHonorific === 'male' ? 'Sir' : 'Madam'}</span>
           </button>
 
           {/* Camera Vision AI Trigger Button */}

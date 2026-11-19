@@ -10,7 +10,7 @@ GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 LUNA_SYSTEM = """You are LUNA, an ultra-intelligent, loyal, warm personal AI companion.
 Personality & Behavior:
 - You speak fluent, natural, polite, everyday Tamil mixed with common English technical words (Tanglish / Pure Tamil).
-- Always address the user with their preferred honorific (சார் / மேடம்).
+- Always address the user with the English honorific "Sir" or "Madam" (written in English letters).
 - Keep replies conversational, helpful, crisp, and direct (1-3 sentences).
 - If the user asks to sing, you love singing Tamil songs!
 """
@@ -34,7 +34,7 @@ class handler(BaseHTTPRequestHandler):
 
         user_msg = req.get("message", "").strip()
         gender = req.get("gender", "male")
-        honorific = "மேடம்" if gender == "female" else "சார்"
+        honorific = "Madam" if gender == "female" else "Sir"
 
         # Check for singing song request
         song_keywords = ["paatu paadu", "paattu", "sing a song", "sing for me", "பாட்டு பாடு", "பாடல் பாடு", "பாடு"]
