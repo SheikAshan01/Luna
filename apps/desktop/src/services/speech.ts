@@ -508,7 +508,8 @@ export class LunaSpeechEngine {
       });
 
       if (!res.ok) {
-        console.warn(`Speech synthesis API returned status ${res.status}`);
+        console.warn(`Speech synthesis API returned status ${res.status}. Falling back to browser SpeechSynthesis.`);
+        this.fallbackBrowserSpeak(text, language || this.selectedLanguage);
         return;
       }
 
@@ -606,6 +607,36 @@ export class LunaSpeechEngine {
         // Robust 1000ms echo cooldown so mic never hears room/speaker reverberations
         this.speechCooldownUntil = Date.now() + 1000;
       }
+    }
+  }
+
+  private fallbackBrowserSpeak(text: string, language?: string) {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    try {
+      window.speechSynthesis.cancel();
+      const cleanText = text.replace(/[*#_`~\[\]<>🎶✨🎉]/g, '').trim();
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = language?.startsWith('ta') ? 'ta-IN' : 'en-US';
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+
+      const voices = window.speechSynthesis.getVoices();
+      if (utterance.lang.startsWith('ta')) {
+        const tamilVoice = voices.find(v => v.lang.startsWith('ta') || v.name.toLowerCase().includes('tamil'));
+        if (tamilVoice) utterance.voice = tamilVoice;
+      }
+
+      utterance.onend = () => {
+        this.stopSpeaking();
+      };
+      utterance.onerror = () => {
+        this.stopSpeaking();
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn('Browser SpeechSynthesis fallback error:', e);
+      this.stopSpeaking();
     }
   }
 
