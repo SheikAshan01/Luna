@@ -9,8 +9,8 @@ logger = logging.getLogger("luna.voice.stt")
 class STTEngine:
     @classmethod
     async def transcribe(cls, audio_bytes: bytes, filename: str = "audio.wav", language: Optional[str] = None) -> Dict[str, Any]:
-        # Filter out tiny accidental noise clicks (< 1200 bytes is < 0.4s)
-        if not audio_bytes or len(audio_bytes) < 1200:
+        # Filter out tiny accidental noise clicks (< 3000 bytes)
+        if not audio_bytes or len(audio_bytes) < 3000:
             return {"text": "", "error": "Audio clip too short or empty"}
 
         # If Groq or OpenAI API Key is present, call Whisper endpoint
@@ -18,7 +18,10 @@ class STTEngine:
             try:
                 base_url = settings.OPENAI_BASE_URL.rstrip("/")
                 url = f"{base_url}/audio/transcriptions"
-                headers = {"Authorization": f"Bearer {settings.OPENAI_API_KEY}"}
+                headers = {
+                    "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                }
                 
                 # Determine model: if Groq, use whisper-large-v3-turbo; else whisper-1
                 is_groq = "groq" in base_url.lower()
@@ -46,24 +49,24 @@ class STTEngine:
                     if clean_lang:
                         data["language"] = clean_lang
 
-                # Acoustic Prompt Biasing for Tamil/Tanglish accuracy
-                if clean_lang == "ta":
-                    data["prompt"] = "வணக்கம் லூனா, பாட்டு பாடு, கால் பண்ணு, எப்படி இருக்கீங்க, மணி என்ன, இன்றைய செய்திகள் என்ன."
-                elif clean_lang == "en":
-                    data["prompt"] = "Hello Luna, how are you, sing a song, call, weather, daily briefing."
+                # Avoid long biasing prompts as they cause Whisper to hallucinate on background noise/silence
+                data["temperature"] = "0.0"
 
                 async with httpx.AsyncClient(timeout=25.0) as client:
                     res = await client.post(url, headers=headers, files=files, data=data)
                     if res.status_code == 200:
                         text = res.json().get("text", "").strip()
                         # Filter out known Whisper silence hallucinations
-                        clean_lower = text.lower().strip(" .!?,;")
+                        clean_lower = text.lower().strip(" .!?,;:")
                         hallucinations = {
                             "thank you", "thanks for watching", "subtitles by", "amara.org",
                             "mbc", "subscribe", "you", "bye", "நன்றி", "பார்த்ததற்கு நன்றி",
-                            "வணக்கம்", "மகிழ்ச்சி", "...", "ஆமாம்", "என்னை சப்ஸ்கிரைப் செய்யவும்"
+                            "வணக்கம்", "மகிழ்ச்சி", "...", "ஆமாம்", "என்னை சப்ஸ்கிரைப் செய்யவும்",
+                            "நான் வருக்கிறேன்", "வருக்கிறேன்", "நான் வருகிறேன்", "அவ்விக்கு",
+                            "அவ்விக்குroitலாக", "வணக்கம் லூனா", "வணக்கம்."
                         }
-                        if clean_lower in hallucinations or len(clean_lower) <= 2:
+                        # If the entire transcription is a hallucination or repetitive gibberish
+                        if clean_lower in hallucinations or len(clean_lower) <= 2 or "roit" in clean_lower:
                             text = ""
                         return {"text": text, "engine": f"whisper ({model_name})"}
                     else:

@@ -149,13 +149,20 @@ export const useLunaStore = create<LunaStore>((set, get) => ({
       assistantState: 'thinking',
     }));
 
+    const recentHistory = get().messages.slice(-8).map(m => ({
+      role: m.role,
+      content: m.content
+    }));
+
     try {
       const resp = await LunaAPI.sendChatMessage(
         text,
         get().currentConversationId || undefined,
         get().language,
         undefined,
-        gender
+        gender,
+        true,
+        recentHistory
       );
 
       // Execute Client-Side Actions (Calling, WhatsApp, YouTube, Timers)

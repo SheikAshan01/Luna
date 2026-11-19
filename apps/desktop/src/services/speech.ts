@@ -333,13 +333,13 @@ export class LunaSpeechEngine {
         this.volumeCallback(norm);
       }
 
-      // Slowly adapt ambient room noise baseline (bounded between 4 and 14)
+      // Slowly adapt ambient room noise baseline (bounded between 5 and 20)
       if (!this.isRecordingChunk) {
-        this.baselineNoise = Math.max(4, Math.min(14, Math.round(this.baselineNoise * 0.95 + rms * 0.05)));
+        this.baselineNoise = Math.max(5, Math.min(20, Math.round(this.baselineNoise * 0.95 + rms * 0.05)));
       }
 
-      // Highly sensitive threshold: baseline + 2, minimum 5
-      const dynamicThreshold = Math.max(5, this.baselineNoise + 2);
+      // Robust speech threshold: baseline + 10, minimum 18 (prevents laptop fan / breathing false triggers)
+      const dynamicThreshold = Math.max(18, this.baselineNoise + 10);
 
       // Track vocal fundamental pitch for Sir vs Ma'am speaker gender adaptation
       if (this.isRecordingChunk && this.audioContext && buffer.length >= 32) {
@@ -368,10 +368,10 @@ export class LunaSpeechEngine {
       }
 
       if (!this.isRecordingChunk) {
-        // Not recording yet: look for speech onset
+        // Not recording yet: look for sustained speech onset (at least 3 consecutive frames = 120ms)
         if (rms > dynamicThreshold) {
           this.consecutiveSpeechFrames++;
-          if (this.consecutiveSpeechFrames >= 1) {
+          if (this.consecutiveSpeechFrames >= 3) {
             this.startSpeechRecording();
           }
         } else {
@@ -396,9 +396,9 @@ export class LunaSpeechEngine {
           // Silence detected
           this.silenceTimerMs += 40;
 
-          // Natural 650ms silence detection: gives breathing room between Tamil words without cut-offs
-          if (this.silenceTimerMs >= 650) {
-            if (duration >= 300) {
+          // Natural 800ms silence detection: gives breathing room between Tamil words without cut-offs
+          if (this.silenceTimerMs >= 800) {
+            if (duration >= 800) {
               this.stopSpeechRecording();
             } else {
               this.abortRecording();
@@ -420,8 +420,8 @@ export class LunaSpeechEngine {
     const audioBlob = new Blob(this.audioChunks, { type: recordedMime });
     this.audioChunks = [];
 
-    // Filter out tiny accidental noise spikes (< 1200 bytes is < 0.4s)
-    if (audioBlob.size < 1200) {
+    // Filter out tiny accidental noise spikes (< 3500 bytes is < 0.7s)
+    if (audioBlob.size < 3500) {
       if (this.speechCallback) this.speechCallback('', true);
       return;
     }
@@ -455,9 +455,13 @@ export class LunaSpeechEngine {
         const text = (data.text || '').trim();
 
         if (text && text.length > 0) {
-          const lower = text.toLowerCase().replace(/[^\w\s]/g, '').trim();
-          const hallucinations = ['thank you', 'thanks for watching', 'subtitles by', 'amara', 'mbc', 'subscribe', 'you'];
-          if (hallucinations.includes(lower)) {
+          const lower = text.toLowerCase().trim();
+          const hallucinations = [
+            'thank you', 'thanks for watching', 'subtitles by', 'amara', 'mbc', 'subscribe',
+            'you', 'bye', 'நன்றி', 'வணக்கம்', 'வணக்கம் லூனா', 'நான் வருக்கிறேன்', 'வருக்கிறேன்'
+          ];
+          const isHallucination = hallucinations.some(h => lower === h || lower === `${h}.`) || lower.length <= 2;
+          if (isHallucination) {
             if (this.speechCallback) this.speechCallback('', true);
             return;
           }
@@ -604,8 +608,8 @@ export class LunaSpeechEngine {
         this.currentAudioSourceNode = null;
         // Re-enable microphone track
         this.setMicTracksEnabled(true);
-        // Robust 1000ms echo cooldown so mic never hears room/speaker reverberations
-        this.speechCooldownUntil = Date.now() + 1000;
+        // Robust 1800ms echo cooldown so mic never hears room/speaker reverberations
+        this.speechCooldownUntil = Date.now() + 1800;
       }
     }
   }

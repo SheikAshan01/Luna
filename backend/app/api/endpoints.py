@@ -28,6 +28,7 @@ class ChatRequest(BaseModel):
     confirmationToken: Optional[str] = None
     gender: Optional[str] = None
     ephemeral: Optional[bool] = True  # Zero Data Retention: default True ensures complete privacy!
+    history: Optional[List[Dict[str, str]]] = None
 
 class ActionRequest(BaseModel):
     actionId: str
@@ -86,7 +87,16 @@ async def health_endpoint():
 async def chat_endpoint(req: ChatRequest):
     # 1. Zero Data Retention / Ephemeral Privacy Mode (Default)
     if req.ephemeral:
-        formatted_messages = [{"role": "user", "content": req.message}]
+        formatted_messages = []
+        if req.history:
+            for h in req.history[-8:]:
+                r = h.get("role", "user")
+                c = h.get("content", "")
+                if c and r in ["user", "assistant"]:
+                    formatted_messages.append({"role": r, "content": c})
+        if not formatted_messages or formatted_messages[-1].get("content") != req.message:
+            formatted_messages.append({"role": "user", "content": req.message})
+
         ai_resp = await ai_brain.chat(
             messages=formatted_messages,
             confirmation_token=req.confirmationToken,

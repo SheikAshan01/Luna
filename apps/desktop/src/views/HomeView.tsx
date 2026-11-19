@@ -202,12 +202,8 @@ export const HomeView: React.FC = () => {
   }, [isHandsFreeActive]);
 
   // Synchronously unlock audio hardware on every user gesture
-  const handleUserGesture = async () => {
+  const handleUserGesture = () => {
     speechEngine.unlockAudio();
-    if (!isHandsFreeActive && !isCameraActive) {
-      await speechEngine.startContinuousAutoListen();
-      setIsHandsFreeActive(true);
-    }
   };
 
   // Toggle continuous hands-free duplex voice mode

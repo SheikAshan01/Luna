@@ -122,7 +122,8 @@ class HybridAIBrain:
     ) -> AIResponse:
         headers = {
             "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
         payload = {
             "model": settings.OPENAI_MODEL,
@@ -268,12 +269,13 @@ class HybridAIBrain:
         tool_calls = []
         h = "Madam" if gender == "female" else "Sir"
 
-        # 1. Greetings & Wake Words (Tamil / English)
-        if q in ["luna", "hey luna", "hi luna", "hello luna", "lunaa", "லூனா"] or any(w in q for w in ["vanakkam", "hey luna", "hi luna", "hello luna", "sollu luna"]):
+        # 1. Greetings & Wake Words (Tamil / English) - only when strictly calling Luna / greeting without a question
+        exact_wake_words = ["luna", "hey luna", "hi luna", "hello luna", "lunaa", "லூனா", "vanakkam", "வணக்கம்", "வணக்கம் லூனா", "sollu luna"]
+        if q in exact_wake_words:
             reply = f"சொல்லுங்கள் {h}! லூனா தயார். என்ன செய்ய வேண்டும்?"
             return AIResponse(content=reply, provider="luna-local-engine")
 
-        if any(w in q for w in ["epdi irukka", "eppadi irukeenga", "how are you", "who are you", "yaaru nee", "un peru enna"]):
+        if q in ["epdi irukka", "eppadi irukeenga", "how are you", "who are you", "yaaru nee", "un peru enna"]:
             reply = f"நான் நலமாக இருக்கிறேன் {h}! நான் தான் உங்கள் தனிப்பட்ட உதவியாளர் லூனா. உங்களுக்கு என்ன உதவி வேண்டும் சொல்லுங்கள்!"
             return AIResponse(content=reply, provider="luna-local-engine")
 

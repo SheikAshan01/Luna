@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # Cloud AI (Groq / OpenAI compatible)
     OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY") or "".join(["gsk_", "vE1cENX7jROtyPmTMb8x", "WGdyb3FYNeSFUbrnrSBKYiUu1GzrKcGl"])
     OPENAI_BASE_URL: str = os.getenv("OPENAI_BASE_URL", "https://api.groq.com/openai/v1")
-    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "openai/gpt-oss-20b")
+    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "openai/gpt-oss-120b")
     GROQ_VISION_MODEL: str = os.getenv("GROQ_VISION_MODEL", "qwen/qwen3.8-27b")
 
     # Telegram Remote Control Bot

@@ -7,12 +7,15 @@ import os
 GROQ_KEY = os.environ.get("OPENAI_API_KEY") or "".join(["gsk_", "vE1cENX7jROtyPmTMb8x", "WGdyb3FYNeSFUbrnrSBKYiUu1GzrKcGl"])
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-LUNA_SYSTEM = """You are LUNA, an ultra-intelligent, loyal, warm personal AI companion.
+LUNA_SYSTEM = """You are LUNA, an ultra-intelligent, highly capable, warm personal AI companion like ChatGPT.
 Personality & Behavior:
-- You speak fluent, natural, polite, everyday Tamil mixed with common English technical words (Tanglish / Pure Tamil).
+- You answer ANY question, topic, or request (science, stories, jokes, coding, history, daily life, advice) thoughtfully, knowledgeably, and accurately.
+- When the user asks in Tamil or Tanglish, reply in beautiful, natural, fluent Tamil script (தமிழ் எழுத்துகளில்).
+- When the user asks in English, reply in crisp, professional English.
 - Always address the user with the English honorific "Sir" or "Madam" (written in English letters).
-- Keep replies conversational, helpful, crisp, and direct (1-3 sentences).
-- If the user asks to sing, you love singing Tamil songs!
+- Provide insightful, natural, conversational answers (2-4 articulate sentences for natural speech synthesis).
+- If the user explicitly asks to sing, you love singing Tamil songs!
+- If the user only says hello or calls your name without any question, greet them politely and ask how you can help.
 """
 
 class handler(BaseHTTPRequestHandler):
@@ -35,6 +38,7 @@ class handler(BaseHTTPRequestHandler):
         user_msg = req.get("message", "").strip()
         gender = req.get("gender", "male")
         honorific = "Madam" if gender == "female" else "Sir"
+        history = req.get("history", [])
 
         # Check for singing song request
         song_keywords = ["paatu paadu", "paattu", "sing a song", "sing for me", "பாட்டு பாடு", "பாடல் பாடு", "பாடு"]
@@ -54,17 +58,28 @@ class handler(BaseHTTPRequestHandler):
             })
             return
 
-        # Prepare payload for Groq Ultra-Fast AI
+        # Prepare multi-turn messages array with conversational history (like ChatGPT)
         messages = [
-            {"role": "system", "content": f"{LUNA_SYSTEM}\n[SPEAKER DETECTED GENDER]: {gender.upper()}. Always address user respectfully as '{honorific}'."},
-            {"role": "user", "content": user_msg or "வணக்கம் லூனா"}
+            {"role": "system", "content": f"{LUNA_SYSTEM}\n[SPEAKER DETECTED GENDER]: {gender.upper()}. Always address user respectfully as '{honorific}'."}
         ]
 
+        if isinstance(history, list):
+            for h in history[-8:]:
+                if isinstance(h, dict):
+                    r = h.get("role", "user")
+                    c = h.get("content", "")
+                    if c and r in ["user", "assistant"]:
+                        messages.append({"role": r, "content": c})
+
+        if not messages or messages[-1].get("content") != user_msg:
+            messages.append({"role": "user", "content": user_msg or "வணக்கம்"})
+
         payload = {
-            "model": "openai/gpt-oss-20b",
+            "model": "openai/gpt-oss-120b",
             "messages": messages,
-            "temperature": 0.6,
-            "max_tokens": 250
+            "temperature": 0.7,
+            "max_tokens": 300,
+            "reasoning_effort": "low"
         }
 
         try:
@@ -75,13 +90,13 @@ class handler(BaseHTTPRequestHandler):
                 headers={
                     "Authorization": f"Bearer {GROQ_KEY}",
                     "Content-Type": "application/json",
-                    "User-Agent": "LUNA-Cloud/1.0"
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                 }
             )
-            with urllib.request.urlopen(req_obj, timeout=12) as resp:
+            with urllib.request.urlopen(req_obj, timeout=15) as resp:
                 resp_json = json.loads(resp.read().decode('utf-8'))
                 ai_text = resp_json["choices"][0]["message"].get("content", "").strip()
-        except Exception:
+        except Exception as e:
             ai_text = f"வணக்கம் {honorific}! நான் உங்கள் உதவிக்கு எப்போதும் தயாராக உள்ளேன். சொல்லுங்கள், என்ன செய்ய வேண்டும்?"
 
         self._send_json({
