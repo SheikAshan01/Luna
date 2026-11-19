@@ -361,12 +361,12 @@ class HybridAIBrain:
             executed_tool_results.append({"toolCallId": "call_lock", "name": "pc_lock", "result": exec_res})
             return AIResponse(content=f"விண்டோஸ் கணினி உடனடியாக பூட்டப்பட்டது {h}.", provider="luna-local-engine", tool_calls=tool_calls, tool_results=executed_tool_results)
 
-        # 7. Sing a Song ("oru paatu paadu", "sing a song", "pada sona")
-        if any(w in q for w in ["paatu paadu", "paattu paadu", "pada sona", "sing a song", "sing for me", "oru paatu", "பாட்டு பாடு", "பாடல் பாடு", "பாடு", "sing", "song pada", "பாடி காட்டு"]):
+        # 7. Sing a Song ("oru paatu paadu", "sing a song", "pada sona", "nanu pada")
+        if any(w in q for w in ["paatu", "paattu", "pada sona", "sing a song", "sing for me", "oru paatu", "பாட்டு", "பாடல்", "பாடு", "sing", "song pada", "பாடி காட்டு", "nanu pada"]):
             songs = [
-                f"🎶 கண்ணே கலைமானே... கன்னி மயிலெனக் கண்டேன் உனை நானே... அந்திப் பகல் உனை நான் பார்க்கிறேன்... கண்ணில் விழுந்ததும் நான் தோற்கிறேன்... 🎶 {h}, உங்களுக்காக இந்தப் பாடலை பாடினேன்! பிடித்திருக்கிறதா?",
-                f"🎶 தென்றல் வந்து தீண்டும் போது என்ன வண்ணமோ மனசுல... திங்கள் வந்து காயும் போது என்ன வெயிலோ நெனப்புல... 🎶 {h}, என் பாடல் உங்களுக்குப் பிடித்ததா?",
-                f"🎶 சின்னச் சின்ன ஆசை... சிறகடிக்கும் ஆசை... முத்து முத்து ஆசை... முடிந்து வைத்த ஆசை... 🎶 {h}, பாடி முடித்துவிட்டேன்!"
+                f"🎶 கண்ணே கலைமானே, கன்னி மயிலெனக் கண்டேன் உனை நானே, அந்திப் பகல் உனை நான் பார்க்கிறேன், கண்ணில் விழுந்ததும் நான் தோற்கிறேன். 🎶 {h}, உங்களுக்காக பாடினேன்! பிடித்திருக்கிறதா? அல்லது YouTube-ல் வேறு பாடல் போடவா?",
+                f"🎶 தென்றல் வந்து தீண்டும் போது என்ன வண்ணமோ மனசுல, திங்கள் வந்து காயும் போது என்ன வெயிலோ நெனப்புல, வந்து வந்து போகுதம்மா என்னென்னமோ நெனப்புல. 🎶 {h}, என் பாட்டு பிடித்திருக்கிறதா?",
+                f"🎶 சின்னச் சின்ன ஆசை, சிறகடிக்கும் ஆசை, முத்து முத்து ஆசை, முடிந்து வைத்த ஆசை. 🎶 {h}, உங்களுக்காக இந்த இனிமையான பாடலை பாடினேன்!"
             ]
             import random
             lyrics = random.choice(songs)

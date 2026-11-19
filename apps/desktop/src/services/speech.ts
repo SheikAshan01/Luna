@@ -50,6 +50,11 @@ export class LunaSpeechEngine {
   private femalePitchFrames = 0;
   private lastDetectedGender: 'male' | 'female' = 'male';
 
+  // High-Accuracy Native Browser Speech Recognition (Chrome / Edge / Android)
+  private nativeRecognition: any = null;
+  private isNativeRunning = false;
+  private useNativeRecognition = false;
+
   constructor() {
     this.setupAutoUnlock();
   }
@@ -181,23 +186,121 @@ export class LunaSpeechEngine {
     }
   }
 
+  private initNativeRecognition(): boolean {
+    if (typeof window === 'undefined') return false;
+    const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRec) return false;
+    if (this.nativeRecognition) return true;
+
+    try {
+      const rec = new SpeechRec();
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+      rec.lang = this.selectedLanguage || 'ta-IN';
+
+      rec.onstart = () => {
+        this.isNativeRunning = true;
+        if (this.speechCallback) this.speechCallback('🎙️ கேட்கிறேன்... சொல்லுங்கள்...', false);
+      };
+
+      rec.onresult = (event: any) => {
+        let interim = '';
+        let final = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            final += transcript;
+          } else {
+            interim += transcript;
+          }
+        }
+        if (interim && !final && this.speechCallback) {
+          this.speechCallback(interim, false);
+        }
+        if (final && final.trim()) {
+          const clean = final.trim();
+          if (this.speechCallback) this.speechCallback(clean, true);
+          if (this.autoSubmitCallback) {
+            this.autoSubmitCallback(clean, this.lastDetectedGender);
+          }
+        }
+      };
+
+      rec.onerror = (err: any) => {
+        if (err.error !== 'no-speech' && err.error !== 'aborted') {
+          console.warn('Native speech recognition notice:', err.error);
+        }
+        this.isNativeRunning = false;
+      };
+
+      rec.onend = () => {
+        this.isNativeRunning = false;
+        if (this.isListening && !this.isSpeaking && Date.now() >= this.speechCooldownUntil) {
+          setTimeout(() => {
+            if (this.isListening && !this.isSpeaking && !this.isNativeRunning) {
+              try {
+                this.nativeRecognition?.start();
+              } catch {}
+            }
+          }, 350);
+        }
+      };
+
+      this.nativeRecognition = rec;
+      return true;
+    } catch (e) {
+      console.warn('Native speech recognition init failed:', e);
+      return false;
+    }
+  }
+
+  private startNativeRecognition(): boolean {
+    if (!this.initNativeRecognition()) return false;
+    if (this.isNativeRunning) return true;
+    try {
+      if (this.nativeRecognition) {
+        this.nativeRecognition.lang = this.selectedLanguage || 'ta-IN';
+        this.nativeRecognition.start();
+        this.isNativeRunning = true;
+        return true;
+      }
+    } catch {}
+    return false;
+  }
+
+  private stopNativeRecognition() {
+    if (this.nativeRecognition && this.isNativeRunning) {
+      try {
+        this.nativeRecognition.abort();
+      } catch {}
+      this.isNativeRunning = false;
+    }
+  }
+
   public async startContinuousAutoListen() {
     this.unlockAudio();
-    const ready = await this.initMicrophone();
-    if (!ready) return;
-
     this.isListening = true;
-    if (this.audioContext?.state === 'suspended') {
-      try {
-        await this.audioContext.resume();
-      } catch {}
-    }
 
-    this.startVADLoop();
+    // 1. Try native Web Speech Recognition first (Chrome/Edge/Android 100% accurate Tamil understanding)
+    const nativeOk = this.startNativeRecognition();
+    this.useNativeRecognition = nativeOk;
+
+    // 2. Hardware initialization for visual orb volume & fallback
+    const ready = await this.initMicrophone();
+    if (ready) {
+      if (this.audioContext?.state === 'suspended') {
+        try {
+          await this.audioContext.resume();
+        } catch {}
+      }
+      this.startVADLoop(nativeOk);
+    }
   }
 
   public stopContinuousAutoListen() {
     this.isListening = false;
+    this.stopNativeRecognition();
     if (this.vadInterval) {
       clearInterval(this.vadInterval);
       this.vadInterval = null;
@@ -292,7 +395,7 @@ export class LunaSpeechEngine {
   /**
    * Continuous Adaptive Voice Activity Detection
    */
-  private startVADLoop() {
+  private startVADLoop(onlyVolumeVisualization = false) {
     if (this.vadInterval) clearInterval(this.vadInterval);
 
     const buffer = new Uint8Array(this.analyser?.frequencyBinCount || 128);
@@ -333,13 +436,18 @@ export class LunaSpeechEngine {
         this.volumeCallback(norm);
       }
 
-      // Slowly adapt ambient room noise baseline (bounded between 5 and 20)
-      if (!this.isRecordingChunk) {
-        this.baselineNoise = Math.max(5, Math.min(20, Math.round(this.baselineNoise * 0.95 + rms * 0.05)));
+      // If native Speech Recognition is actively handling voice input, skip MediaRecorder VAD chunking!
+      if (onlyVolumeVisualization || this.useNativeRecognition) {
+        return;
       }
 
-      // Robust speech threshold: baseline + 10, minimum 18 (prevents laptop fan / breathing false triggers)
-      const dynamicThreshold = Math.max(18, this.baselineNoise + 10);
+      // Slowly adapt ambient room noise baseline (bounded between 4 and 16)
+      if (!this.isRecordingChunk) {
+        this.baselineNoise = Math.max(4, Math.min(16, Math.round(this.baselineNoise * 0.95 + rms * 0.05)));
+      }
+
+      // Sensitive yet stable threshold for fallback engine: baseline + 5, minimum 11
+      const dynamicThreshold = Math.max(11, this.baselineNoise + 5);
 
       // Track vocal fundamental pitch for Sir vs Ma'am speaker gender adaptation
       if (this.isRecordingChunk && this.audioContext && buffer.length >= 32) {
@@ -491,6 +599,7 @@ export class LunaSpeechEngine {
    */
   public async speak(text: string, language?: string): Promise<void> {
     this.stopSpeaking();
+    this.stopNativeRecognition();
 
     const playbackId = ++this.activePlaybackId;
     this.isSpeaking = true;
@@ -610,6 +719,13 @@ export class LunaSpeechEngine {
         this.setMicTracksEnabled(true);
         // Robust 1800ms echo cooldown so mic never hears room/speaker reverberations
         this.speechCooldownUntil = Date.now() + 1800;
+        if (this.isListening) {
+          setTimeout(() => {
+            if (this.isListening && !this.isSpeaking && Date.now() >= this.speechCooldownUntil) {
+              this.startNativeRecognition();
+            }
+          }, 1850);
+        }
       }
     }
   }
