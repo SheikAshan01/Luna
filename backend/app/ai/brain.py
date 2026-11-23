@@ -131,7 +131,7 @@ class HybridAIBrain:
             "tools": LUNA_TOOLS,
             "tool_choice": "auto",
             "temperature": 0.6,
-            "max_tokens": 300
+            "max_tokens": 700
         }
         if "gpt-oss" in settings.OPENAI_MODEL.lower():
             payload["reasoning_effort"] = "low"
@@ -361,27 +361,21 @@ class HybridAIBrain:
             executed_tool_results.append({"toolCallId": "call_lock", "name": "pc_lock", "result": exec_res})
             return AIResponse(content=f"விண்டோஸ் கணினி உடனடியாக பூட்டப்பட்டது {h}.", provider="luna-local-engine", tool_calls=tool_calls, tool_results=executed_tool_results)
 
-        # 7. Sing a Song ("oru paatu paadu", "sing a song", "pada sona", "nanu pada")
-        if any(w in q for w in ["paatu", "paattu", "pada sona", "sing a song", "sing for me", "oru paatu", "பாட்டு", "பாடல்", "பாடு", "sing", "song pada", "பாடி காட்டு", "nanu pada"]):
-            songs = [
-                f"🎶 கண்ணே கலைமானே, கன்னி மயிலெனக் கண்டேன் உனை நானே, அந்திப் பகல் உனை நான் பார்க்கிறேன், கண்ணில் விழுந்ததும் நான் தோற்கிறேன். 🎶 {h}, உங்களுக்காக பாடினேன்! பிடித்திருக்கிறதா? அல்லது YouTube-ல் வேறு பாடல் போடவா?",
-                f"🎶 தென்றல் வந்து தீண்டும் போது என்ன வண்ணமோ மனசுல, திங்கள் வந்து காயும் போது என்ன வெயிலோ நெனப்புல, வந்து வந்து போகுதம்மா என்னென்னமோ நெனப்புல. 🎶 {h}, என் பாட்டு பிடித்திருக்கிறதா?",
-                f"🎶 சின்னச் சின்ன ஆசை, சிறகடிக்கும் ஆசை, முத்து முத்து ஆசை, முடிந்து வைத்த ஆசை. 🎶 {h}, உங்களுக்காக இந்த இனிமையான பாடலை பாடினேன்!"
-            ]
-            import random
-            lyrics = random.choice(songs)
-            return AIResponse(content=lyrics, provider="luna-local-engine")
-
-        # 8. Play Songs on YouTube ("Leo song podu", "Hukum play pannu", "music play pannu")
-        if not any(w in q for w in ["paadu", "பாடு", "sing", "song pada", "pada sona"]) and (any(w in q for w in ["podu", "play song", "paatu podu", "song play", "paattu podu", "பாட்டு போடு", "பாடல் போடு"]) or ("play" in q and any(w in q for w in ["song", "music", "anirudh", "ar rahman", "leo", "jailer", "tamil"]))):
-            # Extract song keywords
+        # 7. Sing a Song or Play Music with Real Singers ("oru paatu paadu", "sing a song", "pada sona", "nanu pada", "play song")
+        if any(w in q for w in ["paatu", "paattu", "pada sona", "sing a song", "sing for me", "oru paatu", "பாட்டு", "பாடல்", "பாடு", "sing", "song pada", "பாடி காட்டு", "nanu pada", "podu", "play song", "music", "இசை"]):
+            # Extract specific song title or pick an evergreen Tamil classic
             cleaned_song = q
-            for noise in ["luna", "enakku", "oru", "podu", "play", "pannu", "song", "paatu", "paattu", "youtube-la", "youtubela", "பாட்டு போடு"]:
+            for noise in ["luna", "enakku", "oru", "podu", "play", "pannu", "song", "paatu", "paattu", "youtube-la", "youtubela", "பாட்டு போடு", "பாட்டு பாடு", "பாடு", "sing", "nanu", "pada", "sona"]:
                 cleaned_song = cleaned_song.replace(noise, "")
-            song_name = cleaned_song.strip() or "trending tamil songs"
+            song_name = cleaned_song.strip()
+            if not song_name:
+                tamil_hits = ["கண்ணே கலைமானே SPB தமிழ் பாடல்", "தென்றல் வந்து தீண்டும் போது இளையராஜா பாடல்", "சின்ன சின்ன ஆசை AR ரஹ்மான் பாடல்", "மலரே மௌனமா SPB பாடல்", "அனிருத் டாப் மெலடி தமிழ் பாடல்கள்"]
+                import random
+                song_name = random.choice(tamil_hits)
+
             tool_calls.append({"id": "call_yt", "function": {"name": "media_play_youtube", "arguments": json.dumps({"query": song_name})}})
             exec_res = await self._execute_tool("media_play_youtube", {"query": song_name}, confirmation_token)
-            return AIResponse(content=f"கண்டிப்பாக {h}, யூடியூபில் '{song_name}' பாடலை இப்போது இயக்குகிறேன்!", provider="luna-local-engine", tool_calls=tool_calls, tool_results=[{"toolCallId": "call_yt", "name": "media_play_youtube", "result": exec_res}])
+            return AIResponse(content=f"கண்டிப்பாக {h}, பாடகர் பாடும் '{song_name}' பாடலை இப்போது உங்களுக்காக YouTube-ல் இயக்குகிறேன்!", provider="luna-local-engine", tool_calls=tool_calls, tool_results=[{"toolCallId": "call_yt", "name": "media_play_youtube", "result": exec_res}])
 
         # 9. Send WhatsApp Message to Number ("9876543210-ku message pannu: Hello")
         import re

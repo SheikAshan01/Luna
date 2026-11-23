@@ -40,25 +40,35 @@ class handler(BaseHTTPRequestHandler):
         honorific = "Madam" if gender == "female" else "Sir"
         history = req.get("history", [])
 
-        # Check for singing song request
-        song_keywords = ["paatu", "paattu", "sing a song", "sing for me", "பாட்டு", "பாடல்", "பாடு", "pada sona", "nanu pada", "sing"]
+        # Check for singing song request -> Play real singer music!
+        song_keywords = ["paatu", "paattu", "sing a song", "sing for me", "பாட்டு", "பாடல்", "பாடு", "pada sona", "nanu pada", "sing", "music", "song"]
         if any(w in user_msg.lower() for w in song_keywords):
-            songs = [
-                f"🎶 கண்ணே கலைமானே, கன்னி மயிலெனக் கண்டேன் உனை நானே, அந்திப் பகல் உனை நான் பார்க்கிறேன், கண்ணில் விழுந்ததும் நான் தோற்கிறேன். 🎶 {honorific}, உங்களுக்காக பாடினேன், பிடித்திருக்கிறதா? அல்லது YouTube-ல் வேறு பாடல் போடவா?",
-                f"🎶 தென்றல் வந்து தீண்டும் போது என்ன வண்ணமோ மனசுல, திங்கள் வந்து காயும் போது என்ன வெயிலோ நெனப்புல, வந்து வந்து போகுதம்மா என்னென்னமோ நெனப்புல. 🎶 {honorific}, என் பாட்டு பிடித்திருக்கிறதா?",
-                f"🎶 சின்னச் சின்ன ஆசை, சிறகடிக்கும் ஆசை, முத்து முத்து ஆசை, முடிந்து வைத்த ஆசை. 🎶 {honorific}, உங்களுக்காக இந்த இனிமையான பாடலை பாடினேன்!"
+            tamil_hits = [
+                ("கண்ணே கலைமானே", "கண்ணே கலைமானே SPB தமிழ் பாடல்"),
+                ("தென்றல் வந்து தீண்டும் போது", "தென்றல் வந்து தீண்டும் போது இளையராஜா பாடல்"),
+                ("சின்னச் சின்ன ஆசை", "சின்ன சின்ன ஆசை ஏ ஆர் ரஹ்மான் பாடல்"),
+                ("மலரே மௌனமா", "மலரே மௌனமா எஸ்பிபி பாடல்"),
+                ("விக்ரம் பத்தல பத்தல", "விக்ரம் பத்தல பத்தல அனிருத் பாடல்"),
+                ("வசீகரா", "வசீகரா மின்சார கனவு பாம்பே ஜெயஸ்ரீ பாடல்"),
+                ("முன்பே வா", "முன்பே வா என் அன்பே வா ஸ்ரேயா கோஷல் பாடல்"),
+                ("மறுவார்த்தை பேசாதே", "மறுவார்த்தை பேசாதே சித் ஸ்ரீராம் பாடல்"),
+                ("அரபிக் குத்து", "அரபிக் குத்து அனிருத் பீஸ்ட் பாடல்")
             ]
             import random
-            selected_song = random.choice(songs)
+            title, yt_q = random.choice(tamil_hits)
+            import urllib.parse
+            yt_url = f"https://www.youtube.com/results?search_query={urllib.parse.quote(yt_q)}"
             self._send_json({
                 "conversationId": "ephemeral-session",
-                "message": selected_song,
-                "provider": "luna-song-engine",
+                "message": f"கண்டிப்பாக {honorific}! பாடகர் பாடும் '{title}' பாடலை உங்களுக்காக இப்போது YouTube-ல் இயக்குகிறேன்!",
+                "provider": "luna-music-engine",
+                "toolCalls": [{"id": "call_music", "function": {"name": "media_play_youtube", "arguments": json.dumps({"query": yt_q})}}],
+                "toolResults": [{"toolCallId": "call_music", "name": "media_play_youtube", "result": {"url": yt_url, "query": yt_q, "success": True}}],
                 "ephemeral": True
             })
             return
 
-        # Prepare multi-turn messages array with conversational history (like ChatGPT)
+        # Prepare multi-turn messages array with conversational history (like ChatGPT / Gemini)
         messages = [
             {"role": "system", "content": f"{LUNA_SYSTEM}\n[SPEAKER DETECTED GENDER]: {gender.upper()}. Always address user respectfully as '{honorific}'."}
         ]
@@ -75,11 +85,10 @@ class handler(BaseHTTPRequestHandler):
             messages.append({"role": "user", "content": user_msg or "வணக்கம்"})
 
         payload = {
-            "model": "openai/gpt-oss-120b",
+            "model": "openai/gpt-oss-20b",
             "messages": messages,
-            "temperature": 0.7,
-            "max_tokens": 300,
-            "reasoning_effort": "low"
+            "temperature": 0.6,
+            "max_tokens": 700
         }
 
         try:

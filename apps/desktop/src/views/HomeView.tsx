@@ -84,24 +84,56 @@ export const HomeView: React.FC = () => {
 
       const honorific = userHonorific === 'female' ? 'Madam' : 'Sir';
 
-      // Feature S: Direct Melodious Tamil Song Singing in Luna's Own Voice
-      // e.g. "பாட்டு பாடு", "ஒரு பாட்டு பாடு", "பாடல் பாடு", "song பாடு", "song pada sona", "sing a song", "sing", "nanu pada sona"
+      // Feature S: Direct Real Singer Music & Song Playback
+      // e.g. "பாட்டு பாடு", "ஒரு பாட்டு பாடு", "பாட சொல்லுறேன்", "nanu song pada sona", "sing a song", "Leo song போடு", "அனிருத் பாட்டு"
       const isSingRequest =
-        q.match(/(?:பாட்டு|பாடல்|பாடி|பாடும்|பாட|song|sing|pada|paada|paadu)/i) &&
-        q.match(/(?:பாடு|பாட|சொன்னா|sonna|sona|kettu|sing|play|me|one)/i) &&
-        !q.match(/(?:youtube|யூடியூப்)/i);
+        q.match(/(?:பாட்டு|பாடல்|பாடி|பாடும்|பாட|song|sing|pada|paada|paadu|music|இசை)/i) &&
+        q.match(/(?:பாடு|பாட|சொன்னா|sonna|sona|kettu|sing|play|me|one|போடு|podu)/i);
 
       if (isSingRequest) {
-        const songVerses = [
-          `🎶 கண்ணே கலைமானே, கன்னி மயிலெனக் கண்டேன் உனை நானே, அந்திப் பகல் உனை நான் பார்க்கிறேன், கண்ணில் விழுந்ததும் நான் தோற்கிறேன். 🎶 ${honorific}, உங்களுக்காக பாடினேன், பிடித்திருக்கிறதா? அல்லது YouTube-ல் உங்களுக்குப் பிடித்த பாடலை இயக்கவா?`,
-          `🎶 தென்றல் வந்து தீண்டும் போது என்ன வண்ணமோ மனசுல, திங்கள் வந்து காயும் போது என்ன வெயிலோ நெனப்புல, வந்து வந்து போகுதம்மா என்னென்னமோ நெனப்புல. 🎶 ${honorific}, என் பாட்டு பிடித்திருக்கிறதா?`,
-          `🎶 சின்னச் சின்ன ஆசை, சிறகடிக்கும் ஆசை, முத்து முத்து ஆசை, முடிந்து வைத்த ஆசை. 🎶 ${honorific}, உங்களுக்காக இந்த இனிமையான பாடலை பாடினேன்!`,
-          `🎶 மலரே மௌனமா, மௌனமே வேதமா, மலர்கள் பேசுமா, பேசினால் ஓயுமா. 🎶 ${honorific}, இந்த அழகான பாடல் உங்களுக்குப் பிடித்ததா?`
+        const tamilHitSongs = [
+          { title: 'கண்ணே கலைமானே', query: 'கண்ணே கலைமானே SPB தமிழ் பாடல்' },
+          { title: 'தென்றல் வந்து தீண்டும் போது', query: 'தென்றல் வந்து தீண்டும் போது இளையராஜா பாடல்' },
+          { title: 'சின்னச் சின்ன ஆசை', query: 'சின்ன சின்ன ஆசை ஏ ஆர் ரஹ்மான் பாடல்' },
+          { title: 'மலரே மௌனமா', query: 'மலரே மௌனமா எஸ்பிபி பாடல்' },
+          { title: 'விக்ரம் பத்தல பத்தல', query: 'விக்ரம் பத்தல பத்தல அனிருத் பாடல்' },
+          { title: 'வசீகரா', query: 'வசீகரா மின்சார கனவு பாம்பே ஜெயஸ்ரீ பாடல்' },
+          { title: 'முன்பே வா என் அன்பே வா', query: 'முன்பே வா என் அன்பே வா ஸ்ரேயா கோஷல் பாடல்' },
+          { title: 'மறுவார்த்தை பேசாதே', query: 'மறுவார்த்தை பேசாதே சித் ஸ்ரீராம் பாடல்' },
+          { title: 'அரபிக் குத்து', query: 'அரபிக் குத்து அனிருத் பீஸ்ட் பாடல்' },
+          { title: 'காதல் ரோஜாவே', query: 'காதல் ரோஜாவே ரோஜா எஸ்பிபி பாடல்' },
+          { title: 'ஹே சினாமிகா', query: 'ஹே சினாமிகா அனிருத் ஓகே கண்மணி பாடல்' },
+          { title: 'ஆளப்போறான் தமிழன்', query: 'ஆளப்போறான் தமிழன் ஏ ஆர் ரஹ்மான் மெர்சல் பாடல்' },
+          { title: 'உயிரே உயிரே', query: 'உயிரே உயிரே பாம்பே ஹரிஹரன் பாடல்' },
+          { title: 'இளையராஜா மெலடிகள்', query: 'இளையராஜா எவர்கிரீன் மெலடி பாடல்கள்' },
+          { title: 'அனிருத் ஹிட்ஸ்', query: 'அனிருத் டாப் மெலடி தமிழ் பாடல்கள்' }
         ];
-        const chosenSong = songVerses[Math.floor(Math.random() * songVerses.length)];
+
+        let selectedQuery = '';
+        let songDisplayName = '';
+        const lowerQ = q.toLowerCase();
+        for (const item of tamilHitSongs) {
+          if (lowerQ.includes(item.title.toLowerCase())) {
+            selectedQuery = item.query;
+            songDisplayName = item.title;
+            break;
+          }
+        }
+        if (!selectedQuery) {
+          const picked = tamilHitSongs[Math.floor(Math.random() * tamilHitSongs.length)];
+          selectedQuery = picked.query;
+          songDisplayName = picked.title;
+        }
+
+        const speakText =
+          language === 'ta-IN'
+            ? `${honorific}, பாடகர் பாடும் '${songDisplayName}' பாடலை உங்களுக்காக இப்போது இயக்குகிறேன்!`
+            : `${honorific}, playing '${songDisplayName}' by the singer now!`;
+
         setAssistantState('speaking');
-        await speechEngine.speak(chosenSong, language);
+        await speechEngine.speak(speakText, language);
         setAssistantState('idle');
+        window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(selectedQuery)}`, '_blank');
         return;
       }
 
