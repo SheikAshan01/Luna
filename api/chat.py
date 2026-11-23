@@ -43,24 +43,52 @@ class handler(BaseHTTPRequestHandler):
         # Check for singing song request -> Play real singer music!
         song_keywords = ["paatu", "paattu", "sing a song", "sing for me", "பாட்டு", "பாடல்", "பாடு", "pada sona", "nanu pada", "sing", "music", "song"]
         if any(w in user_msg.lower() for w in song_keywords):
-            tamil_hits = [
-                ("கண்ணே கலைமானே", "கண்ணே கலைமானே SPB தமிழ் பாடல்"),
-                ("தென்றல் வந்து தீண்டும் போது", "தென்றல் வந்து தீண்டும் போது இளையராஜா பாடல்"),
-                ("சின்னச் சின்ன ஆசை", "சின்ன சின்ன ஆசை ஏ ஆர் ரஹ்மான் பாடல்"),
-                ("மலரே மௌனமா", "மலரே மௌனமா எஸ்பிபி பாடல்"),
-                ("விக்ரம் பத்தல பத்தல", "விக்ரம் பத்தல பத்தல அனிருத் பாடல்"),
-                ("வசீகரா", "வசீகரா மின்சார கனவு பாம்பே ஜெயஸ்ரீ பாடல்"),
-                ("முன்பே வா", "முன்பே வா என் அன்பே வா ஸ்ரேயா கோஷல் பாடல்"),
-                ("மறுவார்த்தை பேசாதே", "மறுவார்த்தை பேசாதே சித் ஸ்ரீராம் பாடல்"),
-                ("அரபிக் குத்து", "அரபிக் குத்து அனிருத் பீஸ்ட் பாடல்")
+            stopwords = [
+                'hey luna', 'luna', 'enakku', 'konjam', 'oru nalla', 'oru',
+                'indha', 'intha', 'nanu', 'naan', 'naanu', 'ni', 'nee', 'neenga',
+                'நீ இந்த', 'இந்த பாட்டு', 'இந்த song', 'இந்த பாடல்', 'இந்த',
+                'nu solli', 'nu sonna', 'nu sona', 'solli', 'sonna', 'sona', 'solren',
+                'சொல்லி', 'சொன்னா', 'சொல்றேன்', 'சொல்லுறேன்',
+                'spec ah', 'spec a', 'specific ah', 'specific',
+                'song ah', 'songa', 'song', 'பாட்டு தான்', 'பாட்டு', 'பாடல்', 'சாங்', 'ட்ராக்', 'music', 'இசை',
+                'பாடி காட்டு', 'பாட சொல்றேன்', 'பாட சொன்னா', 'பாடுங்க', 'பாடு', 'பாட',
+                'pada sona', 'pada sonna', 'pada solren', 'paada', 'paadu',
+                'sing a song', 'sing for me', 'sing',
+                'போடுங்க', 'போடு', 'play pannu', 'play', 'kettu',
+                'ah', 'nu', 'nga', 'தா', 'tha'
             ]
-            import random
-            title, yt_q = random.choice(tamil_hits)
+            import re
+            extracted = user_msg
+            for w in sorted(stopwords, key=len, reverse=True):
+                extracted = re.sub(re.escape(w), ' ', extracted, flags=re.IGNORECASE)
+            cleaned_song = re.sub(r'[:\"\']', '', extracted).strip()
+            cleaned_song = re.sub(r'\s+', ' ', cleaned_song)
+
+            if len(cleaned_song) >= 2 and cleaned_song not in ['ஒரு', 'இந்த', 'song', 'பாட', 'பாடு']:
+                title = cleaned_song
+                yt_q = f"{cleaned_song} tamil song"
+                speak_msg = f"கண்டிப்பாக {honorific}! நீங்கள் கேட்ட '{title}' பாடலை இப்போது YouTube-ல் இயக்குகிறேன்!"
+            else:
+                tamil_hits = [
+                    ("கண்ணே கலைமானே", "கண்ணே கலைமானே SPB தமிழ் பாடல்"),
+                    ("தென்றல் வந்து தீண்டும் போது", "தென்றல் வந்து தீண்டும் போது இளையராஜா பாடல்"),
+                    ("சின்னச் சின்ன ஆசை", "சின்ன சின்ன ஆசை ஏ ஆர் ரஹ்மான் பாடல்"),
+                    ("மலரே மௌனமா", "மலரே மௌனமா எஸ்பிபி பாடல்"),
+                    ("விக்ரம் பத்தல பத்தல", "விக்ரம் பத்தல பத்தல அனிருத் பாடல்"),
+                    ("வசீகரா", "வசீகரா மின்சார கனவு பாம்பே ஜெயஸ்ரீ பாடல்"),
+                    ("முன்பே வா", "முன்பே வா என் அன்பே வா ஸ்ரேயா கோஷல் பாடல்"),
+                    ("மறுவார்த்தை பேசாதே", "மறுவார்த்தை பேசாதே சித் ஸ்ரீராம் பாடல்"),
+                    ("அரபிக் குத்து", "அரபிக் குத்து அனிருத் பீஸ்ட் பாடல்")
+                ]
+                import random
+                title, yt_q = random.choice(tamil_hits)
+                speak_msg = f"கண்டிப்பாக {honorific}! பாடகர் பாடும் '{title}' பாடலை உங்களுக்காக இப்போது YouTube-ல் இயக்குகிறேன்!"
+
             import urllib.parse
             yt_url = f"https://www.youtube.com/results?search_query={urllib.parse.quote(yt_q)}"
             self._send_json({
                 "conversationId": "ephemeral-session",
-                "message": f"கண்டிப்பாக {honorific}! பாடகர் பாடும் '{title}' பாடலை உங்களுக்காக இப்போது YouTube-ல் இயக்குகிறேன்!",
+                "message": speak_msg,
                 "provider": "luna-music-engine",
                 "toolCalls": [{"id": "call_music", "function": {"name": "media_play_youtube", "arguments": json.dumps({"query": yt_q})}}],
                 "toolResults": [{"toolCallId": "call_music", "name": "media_play_youtube", "result": {"url": yt_url, "query": yt_q, "success": True}}],

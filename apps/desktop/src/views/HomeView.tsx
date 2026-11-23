@@ -85,7 +85,8 @@ export const HomeView: React.FC = () => {
       const honorific = userHonorific === 'female' ? 'Madam' : 'Sir';
 
       // Feature S: Direct Real Singer Music & Song Playback
-      // e.g. "பாட்டு பாடு", "ஒரு பாட்டு பாடு", "பாட சொல்லுறேன்", "nanu song pada sona", "sing a song", "Leo song போடு", "அனிருத் பாட்டு"
+      // Supports both specific requested songs (e.g. "Leo song பாடு", "நீ இந்த song பாடு nu சொல்லி: Badass", "Hukum பாடு")
+      // and generic song requests (e.g. "ஒரு பாட்டு பாடு", "song பாடு", "பாட சொல்லுறேன்")
       const isSingRequest =
         q.match(/(?:பாட்டு|பாடல்|பாடி|பாடும்|பாட|song|sing|pada|paada|paadu|music|இசை)/i) &&
         q.match(/(?:பாடு|பாட|சொன்னா|sonna|sona|kettu|sing|play|me|one|போடு|podu)/i);
@@ -109,26 +110,52 @@ export const HomeView: React.FC = () => {
           { title: 'அனிருத் ஹிட்ஸ்', query: 'அனிருத் டாப் மெலடி தமிழ் பாடல்கள்' }
         ];
 
+        // 1. Check if user specified a particular song or artist
+        const songStopwords = [
+          'hey luna', 'luna', 'enakku', 'konjam', 'oru nalla', 'oru',
+          'indha', 'intha', 'nanu', 'naan', 'naanu', 'ni', 'nee', 'neenga',
+          'நீ இந்த', 'இந்த பாட்டு', 'இந்த song', 'இந்த பாடல்', 'இந்த',
+          'nu solli', 'nu sonna', 'nu sona', 'solli', 'sonna', 'sona', 'solren',
+          'சொல்லி', 'சொன்னா', 'சொல்றேன்', 'சொல்லுறேன்',
+          'spec ah', 'spec a', 'specific ah', 'specific',
+          'song ah', 'songa', 'song', 'பாட்டு தான்', 'பாட்டு', 'பாடல்', 'சாங்', 'ட்ராக்', 'music', 'இசை',
+          'பாடி காட்டு', 'பாட சொல்றேன்', 'பாட சொன்னா', 'பாடுங்க', 'பாடு', 'பாட',
+          'pada sona', 'pada sonna', 'pada solren', 'paada', 'paadu',
+          'sing a song', 'sing for me', 'sing',
+          'போடுங்க', 'போடு', 'play pannu', 'play', 'kettu',
+          'ah', 'nu', 'nga', 'தா', 'tha'
+        ];
+
+        let extracted = q;
+        const sortedWords = [...songStopwords].sort((a, b) => b.length - a.length);
+        for (const w of sortedWords) {
+          extracted = extracted.replace(new RegExp(w, 'gi'), ' ');
+        }
+        const cleanedSongName = extracted.replace(/[:"']/g, '').replace(/\s+/g, ' ').trim();
+
         let selectedQuery = '';
         let songDisplayName = '';
-        const lowerQ = q.toLowerCase();
-        for (const item of tamilHitSongs) {
-          if (lowerQ.includes(item.title.toLowerCase())) {
-            selectedQuery = item.query;
-            songDisplayName = item.title;
-            break;
-          }
-        }
-        if (!selectedQuery) {
+        let isSpecific = false;
+
+        if (cleanedSongName.length >= 2 && !['ஒரு', 'இந்த', 'song', 'பாட', 'பாடு'].includes(cleanedSongName.toLowerCase())) {
+          // User named a specific song/artist!
+          isSpecific = true;
+          songDisplayName = cleanedSongName;
+          selectedQuery = `${cleanedSongName} tamil song`;
+        } else {
+          // Generic request -> Pick from top hit songs
           const picked = tamilHitSongs[Math.floor(Math.random() * tamilHitSongs.length)];
           selectedQuery = picked.query;
           songDisplayName = picked.title;
         }
 
-        const speakText =
-          language === 'ta-IN'
-            ? `${honorific}, பாடகர் பாடும் '${songDisplayName}' பாடலை உங்களுக்காக இப்போது இயக்குகிறேன்!`
-            : `${honorific}, playing '${songDisplayName}' by the singer now!`;
+        const speakText = isSpecific
+          ? (language === 'ta-IN'
+              ? `${honorific}, நீங்கள் கேட்ட '${songDisplayName}' பாடலை இப்போது இயக்குகிறேன்!`
+              : `${honorific}, playing '${songDisplayName}' now!`)
+          : (language === 'ta-IN'
+              ? `${honorific}, பாடகர் பாடும் '${songDisplayName}' பாடலை உங்களுக்காக இப்போது இயக்குகிறேன்!`
+              : `${honorific}, playing '${songDisplayName}' by the singer now!`);
 
         setAssistantState('speaking');
         await speechEngine.speak(speakText, language);
