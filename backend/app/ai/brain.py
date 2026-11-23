@@ -361,8 +361,8 @@ class HybridAIBrain:
             executed_tool_results.append({"toolCallId": "call_lock", "name": "pc_lock", "result": exec_res})
             return AIResponse(content=f"விண்டோஸ் கணினி உடனடியாக பூட்டப்பட்டது {h}.", provider="luna-local-engine", tool_calls=tool_calls, tool_results=executed_tool_results)
 
-        # 7. Sing a Song or Play Music with Real Singers ("oru paatu paadu", "sing a song", "pada sona", "nanu pada", "play song", "Leo song")
-        if any(w in q for w in ["paatu", "paattu", "pada sona", "sing a song", "sing for me", "oru paatu", "பாட்டு", "பாடல்", "பாடு", "sing", "song pada", "பாடி காட்டு", "nanu pada", "podu", "play song", "music", "இசை"]):
+        # 7. Sing a Song Directly in Luna's Melodic Voice (NO YOUTUBE REDIRECTION)
+        if any(w in q for w in ["paatu", "paattu", "pada sona", "sing a song", "sing for me", "oru paatu", "பாட்டு", "பாடல்", "பாடு", "sing", "song pada", "பாடி காட்டு", "nanu pada", "song"]):
             stopwords = [
                 'hey luna', 'luna', 'enakku', 'konjam', 'oru nalla', 'oru',
                 'indha', 'intha', 'nanu', 'naan', 'naanu', 'ni', 'nee', 'neenga',
@@ -377,27 +377,78 @@ class HybridAIBrain:
                 'போடுங்க', 'போடு', 'play pannu', 'play', 'kettu',
                 'ah', 'nu', 'nga', 'தா', 'tha'
             ]
-            import re
+            import re, random
             extracted = q
             for w in sorted(stopwords, key=len, reverse=True):
                 extracted = re.sub(re.escape(w), ' ', extracted, flags=re.IGNORECASE)
             cleaned_song = re.sub(r'[:\"\']', '', extracted).strip()
             cleaned_song = re.sub(r'\s+', ' ', cleaned_song)
 
-            if len(cleaned_song) >= 2 and cleaned_song not in ['ஒரு', 'இந்த', 'song', 'பாட', 'பாடு']:
-                song_name = cleaned_song
-                yt_query = f"{cleaned_song} tamil song"
-                speak_msg = f"கண்டிப்பாக {h}, நீங்கள் கேட்ட '{song_name}' பாடலை இப்போது உங்களுக்காக YouTube-ல் இயக்குகிறேன்!"
-            else:
-                tamil_hits = ["கண்ணே கலைமானே SPB தமிழ் பாடல்", "தென்றல் வந்து தீண்டும் போது இளையராஜா பாடல்", "சின்ன சின்ன ஆசை AR ரஹ்மான் பாடல்", "மலரே மௌனமா SPB பாடல்", "அனிருத் டாப் மெலடி தமிழ் பாடல்கள்"]
-                import random
-                yt_query = random.choice(tamil_hits)
-                song_name = yt_query.split()[0]
-                speak_msg = f"கண்டிப்பாக {h}, பாடகர் பாடும் '{song_name}' பாடலை இப்போது உங்களுக்காக YouTube-ல் இயக்குகிறேன்!"
+            song_db = [
+                {
+                    "title": "கண்ணே கலைமானே",
+                    "aliases": ["கண்ணே கலைமானே", "kanne kalaimane", "கலைமானே", "kanne"],
+                    "lyrics": "🎶 கண்ணே... கலைமானே... கன்னி மயில் என... கண்டேன் உனை நானே... அந்திப் பகல் உனை... நான் பார்க்கிறேன்... ஆண்டவனே துணை வேண்டுகிறேன்... 🎶"
+                },
+                {
+                    "title": "தென்றல் வந்து தீண்டும் போது",
+                    "aliases": ["தென்றல் வந்து", "thendral vandhu", "thendral vanthu", "இளையராஜா"],
+                    "lyrics": "🎶 தென்றல் வந்து தீண்டும் போது... என்ன வண்ணமோ மனசுல... திங்கள் வந்து காயும் போது... என்ன நெனப்போ நெனப்புல... வந்து வந்து போகுதம்மா... 🎶"
+                },
+                {
+                    "title": "சின்னச் சின்ன ஆசை",
+                    "aliases": ["சின்ன சின்ன ஆசை", "chinna chinna aasai", "ரோஜா"],
+                    "lyrics": "🎶 சின்னச் சின்ன ஆசை... சிறகடிக்கும் ஆசை... முத்து முத்து ஆசை... முடிந்து வைத்த ஆசை... வெண்ணிலவு தொட்டு முத்தமிட ஆசை... 🎶"
+                },
+                {
+                    "title": "மலரே மௌனமா",
+                    "aliases": ["மலரே மௌனமா", "malare mounama"],
+                    "lyrics": "🎶 மலரே... மௌனமா... மௌனமே... வேதமா... மலர்கள் பேசுமா... பேசினால் ஓயுமா... அன்பே... 🎶"
+                },
+                {
+                    "title": "வசீகரா",
+                    "aliases": ["வசீகரா", "vaseegara", "வசீகரனே"],
+                    "lyrics": "🎶 வசீகரா... என் நெஞ்சினிக்க... உன் பொன் மடியில் தூங்கினால் போதும்... அதே கணம் என் கண்ணுறங்க... முனியின்களும் புதையல் பெறாதே... 🎶"
+                },
+                {
+                    "title": "முன்பே வா என் அன்பே வா",
+                    "aliases": ["முன்பே வா", "munbe vaa", "அன்பே வா"],
+                    "lyrics": "🎶 முன்பே வா என் அன்பே வா... ஊனே வா உயிரே வா... பூ பூவாய் பூப்போம் வா... பூ காற்று கொஞ்சும் போது... 🎶"
+                },
+                {
+                    "title": "மறுவார்த்தை பேசாதே",
+                    "aliases": ["மறுவார்த்தை", "maruvaarthai", "சித் ஸ்ரீராம்"],
+                    "lyrics": "🎶 மறுவார்த்தை பேசாதே... மடி மீது நீ தூங்கு... இமை போல நான் காக்க... கனவாய் நீ மாறு... 🎶"
+                },
+                {
+                    "title": "நிலாவே வா",
+                    "aliases": ["நிலாவே வா", "nilave vaa"],
+                    "lyrics": "🎶 நிலாவே வா... செல்லாதே வா... என் ஆசைக் கண்ணில்... தூங்காதே வா... தினம் தினம் உன் முகமே... என் நினைவில் வாழுதே... 🎶"
+                },
+                {
+                    "title": "அரபிக் குத்து",
+                    "aliases": ["அரபிக் குத்து", "arabic kuthu", "ஹலமிதி"],
+                    "lyrics": "🎶 அரபிக் குத்து ஹலமிதி ஹபிபோ... ஹலமிதி ஹபிபோ... நெஞ்சுக்குள்ளே ஏதோ செய்யுதே... உன்னை கண்டதும் ஆசைகள் ஊறுதே... 🎶"
+                },
+                {
+                    "title": "ஆளப்போறான் தமிழன்",
+                    "aliases": ["ஆளப்போறான் தமிழன்", "aalaporaan thamizhan"],
+                    "lyrics": "🎶 ஆளப்போறான் தமிழன்... உலகம் முழுக்க... நங்கூரம் பாய்ச்சு நிக்கிறான்... தமிழன் என்றாலே... திமிரு தான்டா... 🎶"
+                }
+            ]
 
-            tool_calls.append({"id": "call_yt", "function": {"name": "media_play_youtube", "arguments": json.dumps({"query": yt_query})}})
-            exec_res = await self._execute_tool("media_play_youtube", {"query": yt_query}, confirmation_token)
-            return AIResponse(content=speak_msg, provider="luna-local-engine", tool_calls=tool_calls, tool_results=[{"toolCallId": "call_yt", "name": "media_play_youtube", "result": exec_res}])
+            if len(cleaned_song) >= 2 and cleaned_song not in ['ஒரு', 'இந்த', 'song', 'பாட', 'பாடு']:
+                clean_lower = cleaned_song.lower()
+                matched = next((s for s in song_db if s["title"].lower() in clean_lower or any(a.lower() in clean_lower for a in s["aliases"])), None)
+                if matched:
+                    speak_msg = f"🎶 {h}, நீங்கள் கேட்ட '{matched['title']}' பாடலை உங்களுக்காக பாடுகிறேன்... 🎶\n\n{matched['lyrics']}"
+                else:
+                    speak_msg = f"🎶 {h}, நீங்கள் கேட்ட '{cleaned_song}' பாடலை உங்களுக்காக பாடுகிறேன்... 🎶\n\n🎶 {cleaned_song}... என் நெஞ்சில் ஒலிக்கும் அழகிய கீதமே... இனிமை சிந்தும் இசையோடு... உங்களுக்காக நான் பாடும் பாடலே... 🎶"
+            else:
+                picked = random.choice(song_db)
+                speak_msg = f"🎶 {h}, உங்களுக்காக மெலடி பாடலான '{picked['title']}' பாடலை பாடுகிறேன்... 🎶\n\n{picked['lyrics']}"
+
+            return AIResponse(content=speak_msg, provider="luna-vocal-singer")
 
         # 9. Send WhatsApp Message to Number ("9876543210-ku message pannu: Hello")
         import re

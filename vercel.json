@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "destination": "https://8000-agq5ttvzyaj4xplxpo5qza4oza.instabox.tech/api/$1"
     }
   ]
 }

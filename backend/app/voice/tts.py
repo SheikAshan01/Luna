@@ -32,12 +32,13 @@ class TTSEngine:
     @staticmethod
     def _detect_emotion_params(text: str) -> dict:
         text_lower = text.lower()
-        # 1. Melodious gentle singing cadence
+        # 1. Melodious gentle singing cadence (acoustic musical delivery)
         singing_indicators = [
-            "கலைமானே", "தென்றல் வந்து", "சின்னச் சின்ன ஆசை", "மலரே மௌனமா", "🎶", "🎵", "பாடுகிறேன்"
+            "கலைமானே", "தென்றல் வந்து", "சின்னச் சின்ன ஆசை", "மலரே மௌனமா", "🎶", "🎵", "பாடுகிறேன்",
+            "கீதமே", "பாடலே", "பாடும்", "வசீகரா", "முன்பே வா", "நிலாவே வா", "அன்பே வா"
         ]
         if any(w in text_lower for w in singing_indicators) or any(emoji in text for emoji in ["🎶", "🎵"]):
-            return {"rate": "-8%", "pitch": "+0Hz", "emotion": "singing"}
+            return {"rate": "-15%", "pitch": "+3Hz", "emotion": "singing"}
 
         # 2. Gentle empathetic cadence
         sad_indicators = [

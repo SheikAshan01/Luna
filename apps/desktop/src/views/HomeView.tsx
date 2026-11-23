@@ -84,33 +84,137 @@ export const HomeView: React.FC = () => {
 
       const honorific = userHonorific === 'female' ? 'Madam' : 'Sir';
 
-      // Feature S: Direct Real Singer Music & Song Playback
-      // Supports both specific requested songs (e.g. "Leo song பாடு", "நீ இந்த song பாடு nu சொல்லி: Badass", "Hukum பாடு")
-      // and generic song requests (e.g. "ஒரு பாட்டு பாடு", "song பாடு", "பாட சொல்லுறேன்")
+      // Feature S: Direct Vocal Melody Singing inside Luna (NO YOUTUBE REDIRECTION)
+      // Luna sings directly in her own voice with melodic cadence like a real singer!
       const isSingRequest =
         q.match(/(?:பாட்டு|பாடல்|பாடி|பாடும்|பாட|song|sing|pada|paada|paadu|music|இசை)/i) &&
         q.match(/(?:பாடு|பாட|சொன்னா|sonna|sona|kettu|sing|play|me|one|போடு|podu)/i);
 
       if (isSingRequest) {
-        const tamilHitSongs = [
-          { title: 'கண்ணே கலைமானே', query: 'கண்ணே கலைமானே SPB தமிழ் பாடல்' },
-          { title: 'தென்றல் வந்து தீண்டும் போது', query: 'தென்றல் வந்து தீண்டும் போது இளையராஜா பாடல்' },
-          { title: 'சின்னச் சின்ன ஆசை', query: 'சின்ன சின்ன ஆசை ஏ ஆர் ரஹ்மான் பாடல்' },
-          { title: 'மலரே மௌனமா', query: 'மலரே மௌனமா எஸ்பிபி பாடல்' },
-          { title: 'விக்ரம் பத்தல பத்தல', query: 'விக்ரம் பத்தல பத்தல அனிருத் பாடல்' },
-          { title: 'வசீகரா', query: 'வசீகரா மின்சார கனவு பாம்பே ஜெயஸ்ரீ பாடல்' },
-          { title: 'முன்பே வா என் அன்பே வா', query: 'முன்பே வா என் அன்பே வா ஸ்ரேயா கோஷல் பாடல்' },
-          { title: 'மறுவார்த்தை பேசாதே', query: 'மறுவார்த்தை பேசாதே சித் ஸ்ரீராம் பாடல்' },
-          { title: 'அரபிக் குத்து', query: 'அரபிக் குத்து அனிருத் பீஸ்ட் பாடல்' },
-          { title: 'காதல் ரோஜாவே', query: 'காதல் ரோஜாவே ரோஜா எஸ்பிபி பாடல்' },
-          { title: 'ஹே சினாமிகா', query: 'ஹே சினாமிகா அனிருத் ஓகே கண்மணி பாடல்' },
-          { title: 'ஆளப்போறான் தமிழன்', query: 'ஆளப்போறான் தமிழன் ஏ ஆர் ரஹ்மான் மெர்சல் பாடல்' },
-          { title: 'உயிரே உயிரே', query: 'உயிரே உயிரே பாம்பே ஹரிஹரன் பாடல்' },
-          { title: 'இளையராஜா மெலடிகள்', query: 'இளையராஜா எவர்கிரீன் மெலடி பாடல்கள்' },
-          { title: 'அனிருத் ஹிட்ஸ்', query: 'அனிருத் டாப் மெலடி தமிழ் பாடல்கள்' }
+        const tamilSongLibrary = [
+          {
+            title: 'கண்ணே கலைமானே',
+            aliases: ['கண்ணே கலைமானே', 'kanne kalaimane', 'கலைமானே', 'kanne', 'மூன்றாம் பிறை'],
+            lyrics: '🎶 கண்ணே... கலைமானே... கன்னி மயில் என... கண்டேன் உனை நானே... அந்திப் பகல் உனை... நான் பார்க்கிறேன்... ஆண்டவனே துணை வேண்டுகிறேன்... 🎶'
+          },
+          {
+            title: 'தென்றல் வந்து தீண்டும் போது',
+            aliases: ['தென்றல் வந்து', 'thendral vandhu', 'thendral vanthu', 'இளையராஜா பாடல்'],
+            lyrics: '🎶 தென்றல் வந்து தீண்டும் போது... என்ன வண்ணமோ மனசுல... திங்கள் வந்து காயும் போது... என்ன நெனப்போ நெனப்புல... வந்து வந்து போகுதம்மா... 🎶'
+          },
+          {
+            title: 'சின்னச் சின்ன ஆசை',
+            aliases: ['சின்ன சின்ன ஆசை', 'chinna chinna aasai', 'ரோஜா ஆசை'],
+            lyrics: '🎶 சின்னச் சின்ன ஆசை... சிறகடிக்கும் ஆசை... முத்து முத்து ஆசை... முடிந்து வைத்த ஆசை... வெண்ணிலவு தொட்டு முத்தமிட ஆசை... 🎶'
+          },
+          {
+            title: 'மலரே மௌனமா',
+            aliases: ['மலரே மௌனமா', 'malare mounama', 'கசந்த மௌனம்'],
+            lyrics: '🎶 மலரே... மௌனமா... மௌனமே... வேதமா... மலர்கள் பேசுமா... பேசினால் ஓயுமா... அன்பே... 🎶'
+          },
+          {
+            title: 'வசீகரா',
+            aliases: ['வசீகரா', 'vaseegara', 'வசீகரனே', 'மின்சார பூவே'],
+            lyrics: '🎶 வசீகரா... என் நெஞ்சினிக்க... உன் பொன் மடியில் தூங்கினால் போதும்... அதே கணம் என் கண்ணுறங்க... முனியின்களும் புதையல் பெறாதே... 🎶'
+          },
+          {
+            title: 'முன்பே வா என் அன்பே வா',
+            aliases: ['முன்பே வா', 'munbe vaa', 'என் அன்பே வா'],
+            lyrics: '🎶 முன்பே வா என் அன்பே வா... ஊனே வா உயிரே வா... பூ பூவாய் பூப்போம் வா... பூ காற்று கொஞ்சும் போது... 🎶'
+          },
+          {
+            title: 'மறுவார்த்தை பேசாதே',
+            aliases: ['மறுவார்த்தை', 'maruvaarthai', 'maruvarthai', 'சித் ஸ்ரீராம்'],
+            lyrics: '🎶 மறுவார்த்தை பேசாதே... மடி மீது நீ தூங்கு... இமை போல நான் காக்க... கனவாய் நீ மாறு... 🎶'
+          },
+          {
+            title: 'நிலாவே வா',
+            aliases: ['நிலாவே வா', 'nilave vaa', 'மௌன ராகம்'],
+            lyrics: '🎶 நிலாவே வா... செல்லாதே வா... என் ஆசைக் கண்ணில்... தூங்காதே வா... தினம் தினம் உன் முகமே... என் நினைவில் வாழுதே... 🎶'
+          },
+          {
+            title: 'என் இனிய பொன் நிலாவே',
+            aliases: ['என் இனிய பொன் நிலாவே', 'en iniya pon nilave', 'பொன் நிலாவே'],
+            lyrics: '🎶 என் இனிய... பொன் நிலாவே... பொன் நிலவில்... என் கனாவே... நினைவிலே புது சுகம்... ததும்புது ஏதோ நிறம்... 🎶'
+          },
+          {
+            title: 'காதல் ரோஜாவே',
+            aliases: ['காதல் ரோஜாவே', 'kadhal rojave', 'ரோஜா'],
+            lyrics: '🎶 காதல் ரோஜாவே... எங்கே நீ எங்கே... கண்ணீர் வழியுதடி கண்ணே... கண்ணுக்குள் நீதானே... கண்ணீரில் நான் தானே... 🎶'
+          },
+          {
+            title: 'உயிரே உயிரே',
+            aliases: ['உயிரே உயிரே', 'uyire uyire', 'பாம்பே உயிரே'],
+            lyrics: '🎶 உயிரே... உயிரே... வந்து என்னோடு கலந்துவிடு... நினைவே... நினைவே... என்னை விட்டு நீ விலகிடாதே... 🎶'
+          },
+          {
+            title: 'ஆளப்போறான் தமிழன்',
+            aliases: ['ஆளப்போறான் தமிழன்', 'aalaporaan thamizhan', 'மெர்சல் தமிழன்'],
+            lyrics: '🎶 ஆளப்போறான் தமிழன்... உலகம் முழுக்க... நங்கூரம் பாய்ச்சு நிக்கிறான்... தமிழன் என்றாலே... திமிரு தான்டா... 🎶'
+          },
+          {
+            title: 'அரபிக் குத்து',
+            aliases: ['அரபிக் குத்து', 'arabic kuthu', 'ஹலமிதி', 'halamithi habibo'],
+            lyrics: '🎶 அரபிக் குத்து ஹலமிதி ஹபிபோ... ஹலமிதி ஹபிபோ... நெஞ்சுக்குள்ளே ஏதோ செய்யுதே... உன்னை கண்டதும் ஆசைகள் ஊறுதே... 🎶'
+          },
+          {
+            title: 'கண்ணான கண்ணே',
+            aliases: ['கண்ணான கண்ணே', 'kannaana kanne', 'விசுவாசம் கண்ணான'],
+            lyrics: '🎶 கண்ணான கண்ணே... கண்ணான கண்ணே... என் மீது சாய வா... புண்ணான நெஞ்சை... பூவாக மாற்ற வா... 🎶'
+          },
+          {
+            title: 'ஹே சினாமிகா',
+            aliases: ['ஹே சினாமிகா', 'hey sinamika', 'சினாமிகா'],
+            lyrics: '🎶 ஹே சினாமிகா... என் அன்பே நீதானா... மௌனங்கள் கூட... பேசும் நாள் வந்ததா... 🎶'
+          },
+          {
+            title: 'விக்ரம் பத்தல பத்தல',
+            aliases: ['பத்தல பத்தல', 'pathala pathala', 'விக்ரம்'],
+            lyrics: '🎶 பத்தல பத்தல குட்டையக் குழப்பு... சந்தனம் மணக்க சதிராடு... விக்ரம் வந்தாச்சுடா... 🎶'
+          },
+          {
+            title: 'ஒரு கல் ஒரு கண்ணாடி',
+            aliases: ['ஒரு கல் ஒரு கண்ணாடி', 'oru kal oru kannadi'],
+            lyrics: '🎶 ஒரு கல் ஒரு கண்ணாடி... உடைந்து போனதே... அடி என் மனம் உன்னோடு... இணைந்து போனதே... 🎶'
+          },
+          {
+            title: 'பூங்காற்று திரும்புமா',
+            aliases: ['பூங்காற்று திரும்புமா', 'poongatru thirumbuma'],
+            lyrics: '🎶 பூங்காற்று திரும்புமா... என் பாட்டைப் படிக்குமா... பாசத்திலே பாடி வரும்... பாட்டைக் கேட்டு நிற்குமா... 🎶'
+          },
+          {
+            title: 'இளைய நிலா பொழிகிறது',
+            aliases: ['இளைய நிலா', 'ilaya nila', 'பயணங்கள் முடிவதில்லை'],
+            lyrics: '🎶 இளைய நிலா பொழிகிறது... இதயத்திலே குளிர்கிறது... உலாவும் காற்றுக்கு ஏனோ அமைதி இல்லை... 🎶'
+          },
+          {
+            title: 'சுந்தரி கண்ணால் ஒரு சேதி',
+            aliases: ['சுந்தரி கண்ணால்', 'sundari kannal', 'தளபதி சுந்தரி'],
+            lyrics: '🎶 சுந்தரி கண்ணால் ஒரு சேதி... சொல்லடி இந்நாள் நல்ல தேதி... என்னையே தந்தேன் உனக்காக... ஜென்மமே கொண்டேன் அதற்காக... 🎶'
+          },
+          {
+            title: 'நினைவோ ஒரு பறவை',
+            aliases: ['நினைவோ ஒரு பறவை', 'ninaivo oru paravai'],
+            lyrics: '🎶 நினைவோ ஒரு பறவை... விரிக்கும் அதன் சிறகை... பறக்கும் அது கலக்கும்... தன் துணையைத் தேடி... 🎶'
+          },
+          {
+            title: 'ராசாத்தி உன்ன காணாத நெஞ்சு',
+            aliases: ['ராசாத்தி உன்ன', 'rasathi unna'],
+            lyrics: '🎶 ராசாத்தி உன்ன காணாத நெஞ்சு... காத்தாடி போலாடுது... பொழுதாகிப் போச்சு விளக்கேத்தியாச்சு... பொன்மானே உன்னத் தேடுது... 🎶'
+          },
+          {
+            title: 'கண்ணம்மா கண்ணம்மா',
+            aliases: ['கண்ணம்மா', 'kannamma'],
+            lyrics: '🎶 கண்ணம்மா கண்ணம்மா... அழகு பூஞ்சிலை... என்னுள்ளே என்னுள்ளே... பொழியும் வெண்மழை... 🎶'
+          },
+          {
+            title: 'மாய நதி',
+            aliases: ['மாய நதி', 'maya nadhi', 'கபாலி பாடல்'],
+            lyrics: '🎶 மாய நதி இன்று மார்பில் பாயுதே... தூய நரை கூட பாலில் சாயுதே... உன்னை அன்றி வேறு உலகம் ஏதடி... 🎶'
+          }
         ];
 
-        // 1. Check if user specified a particular song or artist
+        // 1. Extract song title if user specified a particular song
         const songStopwords = [
           'hey luna', 'luna', 'enakku', 'konjam', 'oru nalla', 'oru',
           'indha', 'intha', 'nanu', 'naan', 'naanu', 'ni', 'nee', 'neenga',
@@ -133,34 +237,41 @@ export const HomeView: React.FC = () => {
         }
         const cleanedSongName = extracted.replace(/[:"']/g, '').replace(/\s+/g, ' ').trim();
 
-        let selectedQuery = '';
-        let songDisplayName = '';
-        let isSpecific = false;
+        let songToSing = '';
+        let matchedSong: typeof tamilSongLibrary[0] | undefined;
 
         if (cleanedSongName.length >= 2 && !['ஒரு', 'இந்த', 'song', 'பாட', 'பாடு'].includes(cleanedSongName.toLowerCase())) {
-          // User named a specific song/artist!
-          isSpecific = true;
-          songDisplayName = cleanedSongName;
-          selectedQuery = `${cleanedSongName} tamil song`;
+          // Check if it matches any song in library
+          const cleanLower = cleanedSongName.toLowerCase();
+          matchedSong = tamilSongLibrary.find(s =>
+            s.title.toLowerCase().includes(cleanLower) ||
+            s.aliases.some(a => cleanLower.includes(a.toLowerCase()) || a.toLowerCase().includes(cleanLower))
+          );
+
+          if (matchedSong) {
+            const intro = language === 'ta-IN'
+              ? `🎶 ${honorific}, நீங்கள் கேட்ட '${matchedSong.title}' பாடலை என் குரலில் பாடுகிறேன்... 🎶\n\n`
+              : `🎶 ${honorific}, singing '${matchedSong.title}' for you now... 🎶\n\n`;
+            songToSing = `${intro}${matchedSong.lyrics}`;
+          } else {
+            // Specific song named that isn't pre-indexed: dynamically sing poetic melodious verse for it!
+            const intro = language === 'ta-IN'
+              ? `🎶 ${honorific}, நீங்கள் கேட்ட '${cleanedSongName}' பாடலை என் குரலில் பாடுகிறேன்... 🎶\n\n`
+              : `🎶 ${honorific}, singing '${cleanedSongName}' for you now... 🎶\n\n`;
+            songToSing = `${intro}🎶 ${cleanedSongName}... என் நெஞ்சில் ஒலிக்கும் அழகிய கீதமே... இனிமை சிந்தும் இசையோடு... உங்களுக்காக நான் பாடும் பாடலே... 🎶`;
+          }
         } else {
-          // Generic request -> Pick from top hit songs
-          const picked = tamilHitSongs[Math.floor(Math.random() * tamilHitSongs.length)];
-          selectedQuery = picked.query;
-          songDisplayName = picked.title;
+          // Generic request: pick an iconic Tamil melody from library
+          const picked = tamilSongLibrary[Math.floor(Math.random() * tamilSongLibrary.length)];
+          const intro = language === 'ta-IN'
+            ? `🎶 ${honorific}, உங்களுக்காக அழகிய மெலடி பாடலான '${picked.title}' பாடலை என் குரலில் பாடுகிறேன்... 🎶\n\n`
+            : `🎶 ${honorific}, singing the melody '${picked.title}' for you now... 🎶\n\n`;
+          songToSing = `${intro}${picked.lyrics}`;
         }
 
-        const speakText = isSpecific
-          ? (language === 'ta-IN'
-              ? `${honorific}, நீங்கள் கேட்ட '${songDisplayName}' பாடலை இப்போது இயக்குகிறேன்!`
-              : `${honorific}, playing '${songDisplayName}' now!`)
-          : (language === 'ta-IN'
-              ? `${honorific}, பாடகர் பாடும் '${songDisplayName}' பாடலை உங்களுக்காக இப்போது இயக்குகிறேன்!`
-              : `${honorific}, playing '${songDisplayName}' by the singer now!`);
-
         setAssistantState('speaking');
-        await speechEngine.speak(speakText, language);
+        await speechEngine.speak(songToSing, language);
         setAssistantState('idle');
-        window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(selectedQuery)}`, '_blank');
         return;
       }
 
@@ -202,17 +313,18 @@ export const HomeView: React.FC = () => {
         return;
       }
 
-      // Feature C: Instant YouTube Music Player Trigger
-      // e.g. "அனிருத் பாட்டு போடு", "பாடல் போடு Master", "play song Believer"
+      // Feature C: Vocal Singing for "பாட்டு போடு" / "play song" (NO YOUTUBE REDIRECTION)
       const musicMatch = q.match(/(?:பாட்டு\s*போடு|பாடல்\s*போடு|play\s*song)\s*(.*)/i);
       if (musicMatch && musicMatch[1].trim()) {
         const songName = musicMatch[1].trim();
-        const confirmText =
+        const intro =
           language === 'ta-IN'
-            ? `${honorific}, யூடியூபில் '${songName}' பாடலை இயக்குகிறேன்!`
-            : `${honorific}, playing '${songName}' on YouTube!`;
-        await speechEngine.speak(confirmText, language);
-        window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(songName)}`, '_blank');
+            ? `🎶 ${honorific}, நீங்கள் கேட்ட '${songName}' பாடலை என் குரலில் பாடுகிறேன்... 🎶\n\n`
+            : `🎶 ${honorific}, singing '${songName}' for you now... 🎶\n\n`;
+        const songLyrics = `${intro}🎶 ${songName}... என் நெஞ்சில் ஒலிக்கும் அழகிய கீதமே... இனிமை சிந்தும் இசையோடு... உங்களுக்காக நான் பாடும் பாடலே... 🎶`;
+        setAssistantState('speaking');
+        await speechEngine.speak(songLyrics, language);
+        setAssistantState('idle');
         return;
       }
 

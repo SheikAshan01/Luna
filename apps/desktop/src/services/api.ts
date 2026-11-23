@@ -17,7 +17,13 @@ export const getApiBaseUrl = (): string => {
 
     const saved = localStorage.getItem('luna_api_url');
     if (saved && saved.trim()) {
-      return saved.trim().replace(/\/+$/, '');
+      const clean = saved.trim().replace(/\/+$/, '');
+      // Automatically purge invalid/empty/vercel self-referencing endpoints
+      if (!clean.includes('vercel.app') && clean !== window.location.origin && clean.length > 5) {
+        return clean;
+      } else {
+        localStorage.removeItem('luna_api_url');
+      }
     }
   }
   const envUrl = (import.meta as any).env?.VITE_API_URL;
